@@ -11,12 +11,32 @@ import {
 import { auth } from '@/lib/firebase'
 import type { UserProfile } from '@/types'
 
+const cookieStorage = {
+  getItem(key: string): string | null {
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${encodeURIComponent(key)}=([^;]*)`))
+    return match ? decodeURIComponent(match[1]) : null
+  },
+  setItem(key: string, value: string): void {
+    const maxAge = 60 * 60 * 24 * 365 // 1 year
+    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Strict`
+  },
+  removeItem(key: string): void {
+    document.cookie = `${encodeURIComponent(key)}=;path=/;max-age=0`
+  },
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as UserProfile | null,
     loading: true,
     error: null as string | null,
   }),
+
+  persist: {
+    key: 'budget-auth',
+    storage: cookieStorage,
+    pick: ['user'],
+  },
 
   getters: {
     isAuthenticated(): boolean {
