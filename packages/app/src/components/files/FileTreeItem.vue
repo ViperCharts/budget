@@ -27,6 +27,16 @@
       <AlertCircle class="w-4 h-4 text-red-500" title="Error processing file" />
     </div>
 
+    <!-- Preview button (hover, PDFs only) -->
+    <button
+      v-if="file.format === 'pdf' && file.storagePath"
+      @click.stop="$emit('preview')"
+      class="shrink-0 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-all"
+      title="Preview PDF"
+    >
+      <Eye class="w-3.5 h-3.5" />
+    </button>
+
     <!-- Delete button (hover) -->
     <button
       @click.stop="$emit('delete')"
@@ -40,15 +50,15 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { FileText, FileSpreadsheet, Loader2, AlertCircle, Trash2 } from 'lucide-vue-next'
+import { FileText, FileSpreadsheet, Loader2, AlertCircle, Trash2, Eye } from 'lucide-vue-next'
 import { formatBytes } from '@/lib/csv'
 import { useTransactionsStore } from '@/stores/transactions'
 import type { BudgetFile } from '@/types'
 
 export default defineComponent({
   name: 'FileTreeItem',
-  components: { Loader2, AlertCircle, Trash2 },
-  emits: ['delete'],
+  components: { Loader2, AlertCircle, Trash2, Eye },
+  emits: ['delete', 'preview'],
 
   props: {
     file: {

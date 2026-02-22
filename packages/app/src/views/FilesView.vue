@@ -30,6 +30,7 @@
       v-else
       :tree="filesStore.tree"
       @delete="confirmDelete"
+      @preview="openPreview"
     />
 
     <!-- Confirm delete -->
@@ -40,6 +41,14 @@
       confirm-label="Delete"
       :danger="true"
       @confirm="deleteFile"
+    />
+
+    <!-- PDF preview (already-uploaded) -->
+    <PdfPreviewModal
+      v-model="showPdfPreview"
+      :src="previewSrc"
+      :name="previewFileName"
+      :size="previewFileSize"
     />
   </div>
 </template>
@@ -52,17 +61,22 @@ import FileTree from '@/components/files/FileTree.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import PdfPreviewModal from '@/components/files/PdfPreviewModal.vue'
 import { useFilesStore } from '@/stores/files'
 
 export default defineComponent({
   name: 'FilesView',
-  components: { FileUpload, FileTree, LoadingSpinner, EmptyState, ConfirmModal },
+  components: { FileUpload, FileTree, LoadingSpinner, EmptyState, ConfirmModal, PdfPreviewModal },
 
   data() {
     return {
       FolderOpen,
       showDeleteModal: false,
       pendingDeleteId: '',
+      showPdfPreview: false,
+      previewSrc: null as string | null,
+      previewFileName: null as string | null,
+      previewFileSize: null as number | null,
     }
   },
 
@@ -86,6 +100,24 @@ export default defineComponent({
       if (!this.pendingDeleteId) return
       await useFilesStore().deleteFile(this.pendingDeleteId)
       this.pendingDeleteId = ''
+    },
+
+    async openPreview(fileId: string) {
+      const store = useFilesStore()
+      const file = store.byId[fileId]
+      if (!file) return
+
+      this.previewSrc = null
+      this.previewFileName = file.name
+      this.previewFileSize = file.size
+      this.showPdfPreview = true
+
+      try {
+        this.previewSrc = await store.getDownloadUrl(fileId)
+      } catch (err) {
+        console.error('[FilesView] Failed to load PDF preview:', err)
+        this.showPdfPreview = false
+      }
     },
   },
 })

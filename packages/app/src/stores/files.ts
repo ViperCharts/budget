@@ -243,6 +243,13 @@ export const useFilesStore = defineStore("files", {
       }
     },
 
+    async getDownloadUrl(fileId: string): Promise<string> {
+      const file = this.byId[fileId]
+      if (!file?.storagePath) throw new Error('No storage path for file')
+      const fileRef = storageRef(storage, file.storagePath)
+      return getDownloadURL(fileRef)
+    },
+
     async deleteFile(fileId: string) {
       const file = this.byId[fileId];
       if (!file) return;

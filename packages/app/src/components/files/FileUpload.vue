@@ -56,6 +56,14 @@
     <p v-if="error" class="mt-2 text-sm text-red-600 dark:text-red-400 font-body">
       {{ error }}
     </p>
+
+    <!-- PDF Preview Modal -->
+    <PdfPreviewModal
+      v-model="showPreview"
+      :file="previewFile"
+      @confirm="onConfirmPdf"
+      @cancel="onCancelPdf"
+    />
   </div>
 </template>
 
@@ -64,6 +72,7 @@ import { defineComponent } from 'vue'
 import { Upload, Loader2 } from 'lucide-vue-next'
 import { useFilesStore } from '@/stores/files'
 import { useAIStore } from '@/stores/ai'
+import PdfPreviewModal from './PdfPreviewModal.vue'
 
 const PROCESSING_TIPS = [
   'AI is reading your statement and extracting transactions...',
@@ -74,7 +83,7 @@ const PROCESSING_TIPS = [
 
 export default defineComponent({
   name: 'FileUpload',
-  components: { Upload, Loader2 },
+  components: { Upload, Loader2, PdfPreviewModal },
   emits: ['uploaded'],
 
   setup() {
@@ -89,6 +98,9 @@ export default defineComponent({
       uploading: false,
       error: '',
       processingTip: PROCESSING_TIPS[0],
+      pendingPdfs: [] as File[],
+      showPreview: false,
+      previewFile: null as File | null,
     }
   },
 
@@ -112,7 +124,7 @@ export default defineComponent({
       input.value = ''
     },
 
-    async upload(files: File[]) {
+    upload(files: File[]) {
       const valid = files.filter((f) => f.name.match(/\.(csv|pdf)$/i))
       if (!valid.length) {
         this.error = 'Only CSV and PDF files are supported.'
@@ -120,6 +132,45 @@ export default defineComponent({
       }
 
       this.error = ''
+
+      const csvFiles = valid.filter((f) => f.name.match(/\.csv$/i))
+      const pdfFiles = valid.filter((f) => f.name.match(/\.pdf$/i))
+
+      if (csvFiles.length) {
+        this.uploadFiles(csvFiles)
+      }
+
+      if (pdfFiles.length) {
+        this.pendingPdfs = [...this.pendingPdfs, ...pdfFiles]
+        if (!this.showPreview) {
+          this.showNextPdf()
+        }
+      }
+    },
+
+    showNextPdf() {
+      if (!this.pendingPdfs.length) return
+      const [next, ...rest] = this.pendingPdfs
+      this.pendingPdfs = rest
+      this.previewFile = next
+      this.showPreview = true
+    },
+
+    async onConfirmPdf() {
+      const file = this.previewFile
+      this.previewFile = null
+      if (file) {
+        await this.uploadFiles([file])
+      }
+      this.showNextPdf()
+    },
+
+    onCancelPdf() {
+      this.previewFile = null
+      this.showNextPdf()
+    },
+
+    async uploadFiles(files: File[]) {
       this.uploading = true
 
       let tipIdx = 0
@@ -129,7 +180,7 @@ export default defineComponent({
       }, 3000)
 
       try {
-        await Promise.all(valid.map((f) => this.filesStore.uploadFile(f)))
+        await Promise.all(files.map((f) => this.filesStore.uploadFile(f)))
         this.$emit('uploaded')
       } catch (err) {
         console.error('[FileUpload] Upload failed:', err)

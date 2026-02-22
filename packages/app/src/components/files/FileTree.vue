@@ -27,6 +27,7 @@
               :key="file.id"
               :file="file"
               @delete="$emit('delete', file.id)"
+              @preview="$emit('preview', file.id)"
             />
           </div>
         </div>
@@ -49,7 +50,7 @@ const MONTH_NAMES = [
 export default defineComponent({
   name: 'FileTree',
   components: { Calendar, ChevronDown, FileTreeItem },
-  emits: ['delete'],
+  emits: ['delete', 'preview'],
 
   props: {
     tree: {
