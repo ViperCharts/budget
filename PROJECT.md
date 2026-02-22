@@ -40,7 +40,7 @@ Individuals who want to track their finances and build better habits.
 - Tailwind CSS
 - Lucid Icons
 - Firebase
-- Vercel AI SDK (Anthropic AI)
+- Vercel AI SDK (User brings their own Model + API Key)
 - ./viper = DataViz library (if you want something not in it, tell me and I'll add it!)
 
 ## Architecture
