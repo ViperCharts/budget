@@ -118,11 +118,15 @@ export const useFilesStore = defineStore('files', {
         size: rawFile.size,
         uploadedAt: new Date().toISOString(),
       }
+
+      console.log('[uploadFile] Writing file record to Firestore:', id)
       await setDoc(doc(db, 'files', id), { ...fileDoc, uid: auth.user.uid })
 
       // Upload to storage
+      console.log('[uploadFile] Uploading to Storage:', storagePath)
       const fileRef = storageRef(storage, storagePath)
       await uploadBytes(fileRef, rawFile)
+      console.log('[uploadFile] Storage upload complete')
 
       // Update status to processing
       await setDoc(

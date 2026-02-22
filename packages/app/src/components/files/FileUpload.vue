@@ -77,6 +77,12 @@ export default defineComponent({
   components: { Upload, Loader2 },
   emits: ['uploaded'],
 
+  setup() {
+    const filesStore = useFilesStore()
+    const aiStore = useAIStore()
+    return { filesStore, aiStore }
+  },
+
   data() {
     return {
       isDragging: false,
@@ -88,7 +94,7 @@ export default defineComponent({
 
   computed: {
     aiConfigured(): boolean {
-      return useAIStore().hasApiKey
+      return this.aiStore.hasApiKey
     },
   },
 
@@ -107,9 +113,7 @@ export default defineComponent({
     },
 
     async upload(files: File[]) {
-      const valid = files.filter((f) =>
-        f.name.match(/\.(csv|pdf)$/i),
-      )
+      const valid = files.filter((f) => f.name.match(/\.(csv|pdf)$/i))
       if (!valid.length) {
         this.error = 'Only CSV and PDF files are supported.'
         return
@@ -118,7 +122,6 @@ export default defineComponent({
       this.error = ''
       this.uploading = true
 
-      // Rotate tips
       let tipIdx = 0
       const tipInterval = setInterval(() => {
         tipIdx = (tipIdx + 1) % PROCESSING_TIPS.length
@@ -126,10 +129,10 @@ export default defineComponent({
       }, 3000)
 
       try {
-        const filesStore = useFilesStore()
-        await Promise.all(valid.map((f) => filesStore.uploadFile(f)))
+        await Promise.all(valid.map((f) => this.filesStore.uploadFile(f)))
         this.$emit('uploaded')
       } catch (err) {
+        console.error('[FileUpload] Upload failed:', err)
         this.error =
           err instanceof Error ? err.message : 'Upload failed. Please try again.'
       } finally {
