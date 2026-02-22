@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is the request from the authenticated user?
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Files
+    match /files/{fileId} {
+      allow read, write: if isOwner(resource.data.uid);
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Transactions
+    match /transactions/{txId} {
+      allow read, write: if isOwner(resource.data.uid);
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Accounts
+    match /accounts/{accountId} {
+      allow read, write: if isOwner(resource.data.uid);
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}
