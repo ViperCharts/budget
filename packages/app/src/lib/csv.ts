@@ -74,6 +74,22 @@ export function readFileAsText(file: File): Promise<string> {
 }
 
 /**
+ * Read a File as a raw base64 string (no data URL prefix).
+ * Used for sending PDFs directly to AI providers.
+ */
+export function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      resolve(dataUrl.split(',')[1])
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+/**
  * Read a File as a data URL (for PDF previewing).
  */
 export function readFileAsDataURL(file: File): Promise<string> {

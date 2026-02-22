@@ -3,6 +3,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { generateObject, generateText } from 'ai'
 import { z } from 'zod'
 import type { AISettings, ExtractedFileData, AccountType } from '@/types'
+import { readFileAsBase64, readFileAsText } from '@/lib/csv'
 
 function getModel(settings: AISettings) {
   if (settings.provider === 'anthropic') {
@@ -14,51 +15,60 @@ function getModel(settings: AISettings) {
   }
 }
 
+const CATEGORIES = [
+  'Food & Dining',
+  'Transportation',
+  'Housing & Utilities',
+  'Entertainment',
+  'Healthcare',
+  'Shopping',
+  'Income',
+  'Transfer',
+  'Savings',
+  'Fees & Interest',
+  'Other',
+] as const
+
 const TransactionSchema = z.object({
-  date: z.string().describe('Transaction date in ISO format YYYY-MM-DD'),
-  description: z.string(),
-  amount: z.number().describe('Absolute dollar amount'),
-  type: z.enum(['debit', 'credit']).describe('debit = money out, credit = money in'),
-  category: z.string().describe('Category like: Food, Transport, Housing, Entertainment, Healthcare, Shopping, Income, Transfer, Other'),
+  date: z.string().describe('Transaction date normalized to YYYY-MM-DD'),
+  description: z.string().describe('Original transaction description, lightly cleaned'),
+  amount: z.number().describe('Absolute (positive) dollar amount — never negative'),
+  type: z
+    .enum(['debit', 'credit'])
+    .describe('debit = money out (purchases, withdrawals, fees); credit = money in (deposits, payments, refunds)'),
+  category: z.enum(CATEGORIES),
 })
 
 const ExtractedSchema = z.object({
-  accountName: z.string().optional(),
-  accountType: z.enum(['checking', 'savings', 'credit_card', 'loan', 'mortgage', 'investment', 'other']).optional(),
-  accountNumber: z.string().optional().describe('Last 4 digits only'),
-  statementDate: z.string().optional().describe('ISO date of statement period end'),
+  accountName: z.string().optional().describe('Bank or institution name, e.g. "Chase", "Bank of America"'),
+  accountType: z
+    .enum(['checking', 'savings', 'credit_card', 'loan', 'mortgage', 'investment', 'other'])
+    .optional(),
+  accountNumber: z.string().optional().describe('Last 4 digits only, e.g. "4242"'),
+  statementDate: z.string().optional().describe('Statement period end date in YYYY-MM-DD'),
   openingBalance: z.number().optional(),
   closingBalance: z.number().optional(),
-  interestRate: z.number().optional().describe('Annual percentage rate'),
-  creditLimit: z.number().optional(),
+  interestRate: z.number().optional().describe('APR as a percentage, e.g. 23.99 for 23.99%'),
+  creditLimit: z.number().optional().describe('Dollar amount, e.g. 5000'),
   transactions: z.array(TransactionSchema),
 })
 
-export async function extractFromText(
-  rawText: string,
-  settings: AISettings,
-): Promise<ExtractedFileData> {
-  const model = getModel(settings)
+const EXTRACTION_PROMPT = `You are a financial data extraction assistant. Extract all structured data from this bank or credit card statement.
 
-  const { object } = await generateObject({
-    model,
-    schema: ExtractedSchema,
-    prompt: `You are a financial data extraction assistant. Extract all information from this bank or credit card statement text.
+Rules:
+- Normalize all dates to YYYY-MM-DD format regardless of how they appear in the document
+- Transaction amounts must always be positive numbers. Use the "type" field for direction:
+  - debit = money leaving the account (purchases, withdrawals, fees, payments on a checking account)
+  - credit = money entering the account (deposits, refunds, payments received, payments on a credit card)
+- Extract EVERY transaction — do not skip any
+- For accountType: use "credit_card" for credit card statements, "checking" for checking/debit, "savings" for savings accounts
+- Interest rate should be a number like 23.99 (not 0.2399) representing the APR percentage
+- If a field is not present in the document, omit it entirely — do not guess or make up values
 
-Statement text:
----
-${rawText.slice(0, 12000)}
----
+Categories (pick the single best match):
+Food & Dining, Transportation, Housing & Utilities, Entertainment, Healthcare, Shopping, Income, Transfer, Savings, Fees & Interest, Other`
 
-Extract:
-1. Account details (name, type, number last 4 digits, interest rate if credit card, credit limit)
-2. Statement period dates
-3. Opening and closing balances
-4. ALL transactions with date, description, amount, whether it's a debit (money out) or credit (money in), and a category
-
-For categories use: Food & Dining, Transportation, Housing & Utilities, Entertainment, Healthcare, Shopping, Income, Transfer, Savings, Fees & Interest, Other`,
-  })
-
+function mapExtractedObject(object: z.infer<typeof ExtractedSchema>): ExtractedFileData {
   return {
     accountName: object.accountName,
     accountType: object.accountType as AccountType | undefined,
@@ -78,11 +88,66 @@ For categories use: Food & Dining, Transportation, Housing & Utilities, Entertai
   }
 }
 
+/**
+ * Extract financial data from plain text (used for CSV statements).
+ */
+export async function extractFromText(
+  rawText: string,
+  settings: AISettings,
+): Promise<ExtractedFileData> {
+  const model = getModel(settings)
+
+  const { object } = await generateObject({
+    model,
+    schema: ExtractedSchema,
+    system: EXTRACTION_PROMPT,
+    prompt: `Statement data:\n---\n${rawText.slice(0, 12000)}\n---`,
+  })
+
+  return mapExtractedObject(object)
+}
+
+/**
+ * Extract financial data from a PDF file.
+ * When using Anthropic, sends the PDF natively for accurate extraction.
+ * Falls back to text extraction for OpenAI (limited accuracy).
+ */
+export async function extractFromPDF(
+  file: File,
+  settings: AISettings,
+): Promise<ExtractedFileData> {
+  const model = getModel(settings)
+
+  if (settings.provider === 'anthropic') {
+    const base64 = await readFileAsBase64(file)
+
+    const { object } = await generateObject({
+      model,
+      schema: ExtractedSchema,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'file', data: base64, mimeType: 'application/pdf' },
+            { type: 'text', text: EXTRACTION_PROMPT },
+          ],
+        },
+      ],
+    })
+
+    return mapExtractedObject(object)
+  }
+
+  // OpenAI fallback: read as text (PDFs are binary so quality will be limited)
+  const rawText = await readFileAsText(file)
+  return extractFromText(rawText, settings)
+}
+
 const CategorizationSchema = z.object({
   categories: z.array(
     z.object({
       description: z.string(),
-      category: z.string(),
+      category: z.enum(CATEGORIES),
     }),
   ),
 })
@@ -96,8 +161,8 @@ export async function categorizeTransactions(
   const { object } = await generateObject({
     model,
     schema: CategorizationSchema,
-    prompt: `Categorize each of these transaction descriptions into one of:
-Food & Dining, Transportation, Housing & Utilities, Entertainment, Healthcare, Shopping, Income, Transfer, Savings, Fees & Interest, Other
+    prompt: `Categorize each transaction description into one of:
+${CATEGORIES.join(', ')}
 
 Descriptions:
 ${descriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}`,

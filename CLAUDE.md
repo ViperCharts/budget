@@ -44,6 +44,30 @@ methods: {
 },
 ```
 
+## Firestore Rules
+
+**Never write `undefined` values to Firestore.** Firestore throws a runtime error if any field in a document is `undefined`.
+
+For optional fields, omit them entirely from the object rather than setting them to `undefined`:
+
+```ts
+// ✅ Correct — omit the field when the value is absent
+const data = {
+  name: account.name,
+  ...(account.creditLimit !== undefined && { creditLimit: account.creditLimit }),
+  ...(account.interestRate !== undefined && { interestRate: account.interestRate }),
+}
+
+// ❌ Wrong — Firestore will throw
+const data = {
+  name: account.name,
+  creditLimit: account.creditLimit,   // may be undefined
+  interestRate: account.interestRate, // may be undefined
+}
+```
+
+This applies everywhere: `setDoc`, `updateDoc`, `addDoc`, batch writes, and transactions.
+
 ## Tech Stack
 
 - **Runtime:** Bun

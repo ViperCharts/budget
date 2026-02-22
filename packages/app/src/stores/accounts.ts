@@ -75,8 +75,8 @@ export const useAccountsStore = defineStore('accounts', {
         currency: account.currency ?? 'USD',
         lastUpdated: new Date().toISOString(),
         fileIds: account.fileIds ?? [],
-        interestRate: account.interestRate,
-        creditLimit: account.creditLimit,
+        ...(account.interestRate !== undefined && { interestRate: account.interestRate }),
+        ...(account.creditLimit !== undefined && { creditLimit: account.creditLimit }),
       }
 
       await setDoc(doc(db, 'accounts', id), { ...data, uid: auth.user.uid })
