@@ -108,6 +108,15 @@ export default defineComponent({
   components: { RouterLink, Menu, Sun, Moon, Monitor, ChevronDown, Settings, LogOut, Sparkles },
   emits: ['toggle-sidebar'],
 
+  setup() {
+    const auth = useAuthStore()
+    const themeStore = useThemeStore()
+    const aiStore = useAIStore()
+    const txStore = useTransactionsStore()
+    const router = useRouter()
+    return { auth, themeStore, aiStore, txStore, router }
+  },
+
   data() {
     return {
       showUserMenu: false,
@@ -120,14 +129,13 @@ export default defineComponent({
       return PAGE_TITLES[this.$route.path] ?? 'Budget'
     },
     userInitial(): string {
-      const auth = useAuthStore()
-      return (auth.user?.displayName?.[0] ?? auth.user?.email?.[0] ?? 'U').toUpperCase()
+      return (this.auth.user?.displayName?.[0] ?? this.auth.user?.email?.[0] ?? 'U').toUpperCase()
     },
     userEmail(): string {
-      return useAuthStore().user?.email ?? ''
+      return this.auth.user?.email ?? ''
     },
     themeMode() {
-      return useThemeStore().mode
+      return this.themeStore.mode
     },
   },
 
@@ -137,31 +145,26 @@ export default defineComponent({
 
   methods: {
     cycleTheme() {
-      const themeStore = useThemeStore()
       const modes = ['light', 'dark', 'system'] as const
-      const idx = modes.indexOf(themeStore.mode)
-      themeStore.setMode(modes[(idx + 1) % modes.length])
+      const idx = modes.indexOf(this.themeStore.mode)
+      this.themeStore.setMode(modes[(idx + 1) % modes.length])
     },
 
     async logout() {
-      const auth = useAuthStore()
-      const router = useRouter()
-      await auth.logout()
-      router.push('/auth')
+      await this.auth.logout()
+      this.router.push('/auth')
     },
 
     async loadTip() {
-      const aiStore = useAIStore()
-      const txStore = useTransactionsStore()
-      if (!aiStore.hasApiKey) return
+      if (!this.aiStore.hasApiKey) return
 
       try {
         this.financialTip = await getFinancialTip(
           {
-            totalSpending: txStore.totalSpentThisMonth,
-            topCategory: txStore.topCategoryThisMonth,
+            totalSpending: this.txStore.totalSpentThisMonth,
+            topCategory: this.txStore.topCategoryThisMonth,
           },
-          aiStore.settings,
+          this.aiStore.settings,
         )
       } catch {
         // Silently fail - tips are nice to have

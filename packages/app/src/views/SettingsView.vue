@@ -193,6 +193,14 @@ export default defineComponent({
     Sparkles, Loader2, Zap, Palette, UserCircle, LogOut, AlertCircle,
   },
 
+  setup() {
+    const aiStore = useAIStore()
+    const themeStore = useThemeStore()
+    const authStore = useAuthStore()
+    const router = useRouter()
+    return { aiStore, themeStore, authStore, router }
+  },
+
   data() {
     return {
       showKey: false,
@@ -204,12 +212,6 @@ export default defineComponent({
         { value: 'system', label: 'System', icon: Monitor },
       ],
     }
-  },
-
-  computed: {
-    aiStore() { return useAIStore() },
-    themeStore() { return useThemeStore() },
-    authStore() { return useAuthStore() },
   },
 
   methods: {
@@ -228,9 +230,8 @@ export default defineComponent({
     },
 
     async logout() {
-      const router = useRouter()
-      await useAuthStore().logout()
-      router.push('/auth')
+      await this.authStore.logout()
+      this.router.push('/auth')
     },
   },
 })

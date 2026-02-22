@@ -103,6 +103,12 @@ export default defineComponent({
   name: 'AuthView',
   components: { TrendingUp, Loader2 },
 
+  setup() {
+    const auth = useAuthStore()
+    const router = useRouter()
+    return { auth, router }
+  },
+
   data() {
     return {
       activeTab: 'sign-in' as 'sign-in' | 'sign-up',
@@ -117,18 +123,16 @@ export default defineComponent({
     async submit() {
       this.loading = true
       this.error = ''
-      const auth = useAuthStore()
-      const router = useRouter()
 
       try {
         if (this.activeTab === 'sign-in') {
-          await auth.signIn(this.email, this.password)
+          await this.auth.signIn(this.email, this.password)
         } else {
-          await auth.signUp(this.email, this.password)
+          await this.auth.signUp(this.email, this.password)
         }
-        router.push('/')
+        this.router.push('/')
       } catch {
-        this.error = auth.error ?? 'Something went wrong.'
+        this.error = this.auth.error ?? 'Something went wrong.'
       } finally {
         this.loading = false
       }
@@ -137,14 +141,12 @@ export default defineComponent({
     async signInWithGoogle() {
       this.loading = true
       this.error = ''
-      const auth = useAuthStore()
-      const router = useRouter()
 
       try {
-        await auth.signInWithGoogle()
-        router.push('/')
+        await this.auth.signInWithGoogle()
+        this.router.push('/')
       } catch {
-        this.error = auth.error ?? 'Google sign-in failed.'
+        this.error = this.auth.error ?? 'Google sign-in failed.'
       } finally {
         this.loading = false
       }
