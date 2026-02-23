@@ -39,17 +39,28 @@
       {{ transaction.type === 'credit' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
     </p>
 
-    <!-- Edit category -->
+    <!-- Category selector -->
     <div class="shrink-0">
       <select
         :value="transaction.category"
-        class="text-xs border border-[var(--color-border)] bg-[var(--color-surface)] text-gray-700 dark:text-gray-200 cursor-pointer rounded px-1.5 py-1 focus:ring-1 focus:ring-brand-500 focus:outline-none"
-        @change="updateCategory"
+        class="text-xs border border-[var(--color-border)] bg-[var(--color-surface)] text-gray-700 dark:text-gray-200 cursor-pointer rounded px-1.5 py-1 focus:ring-1 focus:ring-brand-500 focus:outline-none max-w-[160px]"
         title="Change category"
+        @change="onSelectChange"
       >
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+        <optgroup label="Categories">
+          <option v-for="cat in allCategoryNames" :key="cat" :value="cat">{{ categoryLabel(cat) }}</option>
+        </optgroup>
+        <optgroup label="Custom">
+          <option value="__custom__">+ Add custom category…</option>
+        </optgroup>
       </select>
     </div>
+
+    <!-- Custom category modal -->
+    <CustomCategoryModal
+      v-model="showCustomModal"
+      @created="onCategoryCreated"
+    />
   </div>
 </template>
 
@@ -57,13 +68,15 @@
 import { defineComponent, type PropType } from 'vue'
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-vue-next'
 import CategoryBadge from '@/components/ui/CategoryBadge.vue'
+import CustomCategoryModal from '@/components/ui/CustomCategoryModal.vue'
 import { useTransactionsStore } from '@/stores/transactions'
+import { useCategoriesStore } from '@/stores/categories'
 import { formatCurrency, formatDate } from '@/lib/currency'
-import type { Transaction } from '@/types'
+import type { Transaction, Category } from '@/types'
 
 export default defineComponent({
   name: 'TransactionRow',
-  components: { ArrowUpRight, ArrowDownLeft, CategoryBadge },
+  components: { ArrowUpRight, ArrowDownLeft, CategoryBadge, CustomCategoryModal },
   props: {
     transaction: {
       type: Object as PropType<Transaction>,
@@ -73,21 +86,46 @@ export default defineComponent({
 
   setup() {
     const transactionsStore = useTransactionsStore()
-    return { transactionsStore }
+    const categoriesStore = useCategoriesStore()
+    return { transactionsStore, categoriesStore }
+  },
+
+  data() {
+    return {
+      showCustomModal: false,
+    }
   },
 
   computed: {
-    categories(): string[] {
-      return this.transactionsStore.categories
+    allCategoryNames(): string[] {
+      return this.categoriesStore.names
     },
   },
 
   methods: {
     formatCurrency,
     formatDate,
-    async updateCategory(e: Event) {
-      const cat = (e.target as HTMLSelectElement).value
-      await this.transactionsStore.updateCategory(this.transaction.id, cat)
+
+    categoryLabel(name: string): string {
+      const emoji = this.categoriesStore.emojiFor(name)
+      return emoji ? `${emoji} ${name}` : name
+    },
+
+    onSelectChange(e: Event) {
+      const select = e.target as HTMLSelectElement
+      const val = select.value
+
+      if (val === '__custom__') {
+        // Reset the select to current transaction category so it doesn't display __custom__
+        select.value = this.transaction.category
+        this.showCustomModal = true
+      } else {
+        this.transactionsStore.updateCategory(this.transaction.id, val)
+      }
+    },
+
+    onCategoryCreated(cat: Category) {
+      this.transactionsStore.updateCategory(this.transaction.id, cat.name)
     },
   },
 })
