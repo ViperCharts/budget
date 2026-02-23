@@ -24,6 +24,24 @@
         <span class="line-clamp-1">{{ financialTip }}</span>
       </div>
 
+      <!-- Global month picker -->
+      <div class="flex items-center gap-0.5 border border-[var(--color-border)] rounded-lg px-1">
+        <button class="btn-ghost p-1.5" title="Previous month" @click="monthStore.prevPeriod()">
+          <ChevronLeft class="w-4 h-4" />
+        </button>
+        <span class="font-heading font-semibold text-sm text-gray-900 dark:text-white w-32 text-center select-none">
+          {{ formatPeriod(monthStore.activePeriod) }}
+        </span>
+        <button
+          class="btn-ghost p-1.5"
+          title="Next month"
+          :disabled="monthStore.isCurrentPeriod"
+          @click="monthStore.nextPeriod()"
+        >
+          <ChevronRight class="w-4 h-4" />
+        </button>
+      </div>
+
       <!-- Theme toggle -->
       <button @click="cycleTheme" class="btn-ghost p-2">
         <Sun v-if="themeMode === 'light'" class="w-4 h-4" />
@@ -84,6 +102,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Settings,
   LogOut,
@@ -93,7 +113,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useAIStore } from '@/stores/ai'
+import { useMonthStore } from '@/stores/month'
 import { getFinancialTip } from '@/lib/ai'
+import { formatPeriod } from '@/lib/currency'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -105,7 +127,7 @@ const PAGE_TITLES: Record<string, string> = {
 
 export default defineComponent({
   name: 'TopBar',
-  components: { RouterLink, Menu, Sun, Moon, Monitor, ChevronDown, Settings, LogOut, Sparkles },
+  components: { RouterLink, Menu, Sun, Moon, Monitor, ChevronLeft, ChevronRight, ChevronDown, Settings, LogOut, Sparkles },
   emits: ['toggle-sidebar'],
 
   setup() {
@@ -113,8 +135,9 @@ export default defineComponent({
     const themeStore = useThemeStore()
     const aiStore = useAIStore()
     const txStore = useTransactionsStore()
+    const monthStore = useMonthStore()
     const router = useRouter()
-    return { auth, themeStore, aiStore, txStore, router }
+    return { auth, themeStore, aiStore, txStore, monthStore, router }
   },
 
   data() {
@@ -144,6 +167,8 @@ export default defineComponent({
   },
 
   methods: {
+    formatPeriod,
+
     cycleTheme() {
       const modes = ['light', 'dark', 'system'] as const
       const idx = modes.indexOf(this.themeStore.mode)

@@ -1,20 +1,20 @@
 import { defineStore } from 'pinia'
-import { currentPeriod } from '@/lib/currency'
 import { useTransactionsStore } from './transactions'
 import { useCategoriesStore } from './categories'
+import { useMonthStore } from './month'
 import type { BudgetItem } from '@/types'
 import { nanoid } from '@/lib/nanoid'
 
 export const useBudgetStore = defineStore('budget', {
   state: () => ({
     items: [] as BudgetItem[],
-    activePeriod: currentPeriod(),
   }),
 
   getters: {
     /** Budget items for the active period */
     activeItems(): BudgetItem[] {
-      return this.items.filter((i) => i.period === this.activePeriod)
+      const monthStore = useMonthStore()
+      return this.items.filter((i) => i.period === monthStore.activePeriod)
     },
 
     /** Spending vs budget for active period */
@@ -27,9 +27,10 @@ export const useBudgetStore = defineStore('budget', {
       percent: number
       over: boolean
     }[] {
+      const monthStore = useMonthStore()
       const txStore = useTransactionsStore()
       const catStore = useCategoriesStore()
-      const txs = (txStore.byPeriod[this.activePeriod] ?? []).filter(
+      const txs = (txStore.byPeriod[monthStore.activePeriod] ?? []).filter(
         (t) => t.type === 'debit',
       )
 
@@ -62,8 +63,10 @@ export const useBudgetStore = defineStore('budget', {
 
   actions: {
     upsertItem(categoryId: string, monthlyLimit: number) {
+      const monthStore = useMonthStore()
+      const activePeriod = monthStore.activePeriod
       const existing = this.items.find(
-        (i) => i.categoryId === categoryId && i.period === this.activePeriod,
+        (i) => i.categoryId === categoryId && i.period === activePeriod,
       )
       if (existing) {
         existing.monthlyLimit = monthlyLimit
@@ -72,17 +75,13 @@ export const useBudgetStore = defineStore('budget', {
           id: nanoid(),
           categoryId,
           monthlyLimit,
-          period: this.activePeriod,
+          period: activePeriod,
         })
       }
     },
 
     removeItem(id: string) {
       this.items = this.items.filter((i) => i.id !== id)
-    },
-
-    setPeriod(period: string) {
-      this.activePeriod = period
     },
   },
 

@@ -1,25 +1,5 @@
 <template>
   <div>
-    <!-- Month navigator -->
-    <div class="flex items-center justify-between mb-4">
-      <h3
-        class="font-heading font-semibold text-lg text-gray-900 dark:text-white"
-      >
-        {{ monthLabel }}
-      </h3>
-      <div class="flex items-center gap-1">
-        <button class="btn-ghost px-2 py-1.5" title="Previous month" @click="prevMonth">
-          <ChevronLeft class="w-4 h-4" />
-        </button>
-        <button class="btn-secondary px-3 py-1.5 text-sm" @click="goToToday">
-          Today
-        </button>
-        <button class="btn-ghost px-2 py-1.5" title="Next month" @click="nextMonth">
-          <ChevronRight class="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-
     <!-- Day-of-week header row -->
     <div
       class="grid grid-cols-7 border-l border-t border-[var(--color-border)] rounded-tl-lg rounded-tr-lg overflow-hidden"
@@ -90,7 +70,7 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { useMonthStore } from '@/stores/month'
 import type { Transaction } from '@/types'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
@@ -107,7 +87,6 @@ interface CalendarCell {
 
 export default defineComponent({
   name: 'TransactionCalendar',
-  components: { ChevronLeft, ChevronRight },
   emits: ['transaction-click'],
 
   props: {
@@ -117,19 +96,24 @@ export default defineComponent({
     },
   },
 
+  setup() {
+    const monthStore = useMonthStore()
+    return { monthStore }
+  },
+
   data() {
-    const now = new Date()
     return {
       DAY_LABELS,
-      calendarYear: now.getFullYear(),
-      calendarMonth: now.getMonth() + 1, // 1-12
     }
   },
 
   computed: {
-    monthLabel(): string {
-      const d = new Date(this.calendarYear, this.calendarMonth - 1, 1)
-      return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    calendarYear(): number {
+      return parseInt(this.monthStore.activePeriod.split('-')[0])
+    },
+
+    calendarMonth(): number {
+      return parseInt(this.monthStore.activePeriod.split('-')[1])
     },
 
     todayStr(): string {
@@ -200,32 +184,6 @@ export default defineComponent({
       }
 
       return cells
-    },
-  },
-
-  methods: {
-    prevMonth() {
-      if (this.calendarMonth === 1) {
-        this.calendarMonth = 12
-        this.calendarYear--
-      } else {
-        this.calendarMonth--
-      }
-    },
-
-    nextMonth() {
-      if (this.calendarMonth === 12) {
-        this.calendarMonth = 1
-        this.calendarYear++
-      } else {
-        this.calendarMonth++
-      }
-    },
-
-    goToToday() {
-      const now = new Date()
-      this.calendarYear = now.getFullYear()
-      this.calendarMonth = now.getMonth() + 1
     },
   },
 })

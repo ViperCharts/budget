@@ -1,25 +1,10 @@
 <template>
   <div class="space-y-6 max-w-4xl">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div>
-        <h2 class="font-heading font-bold text-xl text-gray-900 dark:text-white">Budget</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 font-body">
-          Plan and track your monthly spending goals
-        </p>
-      </div>
-
-      <!-- Period picker -->
-      <div class="flex items-center gap-2">
-        <button class="btn-ghost p-1.5" @click="prevPeriod">
-          <ChevronLeft class="w-4 h-4" />
-        </button>
-        <span class="font-heading font-semibold text-sm text-gray-900 dark:text-white w-36 text-center">
-          {{ formatPeriod(budgetStore.activePeriod) }}
-        </span>
-        <button class="btn-ghost p-1.5" @click="nextPeriod" :disabled="isCurrentPeriod">
-          <ChevronRight class="w-4 h-4" />
-        </button>
-      </div>
+    <div>
+      <h2 class="font-heading font-bold text-xl text-gray-900 dark:text-white">Budget</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400 font-body">
+        Plan and track your monthly spending goals
+      </p>
     </div>
 
     <!-- Summary bar -->
@@ -159,14 +144,20 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 import { useBudgetStore } from '@/stores/budget'
 import { useCategoriesStore } from '@/stores/categories'
-import { formatCurrency, formatPeriod, currentPeriod } from '@/lib/currency'
+import { formatCurrency } from '@/lib/currency'
 
 export default defineComponent({
   name: 'BudgetView',
-  components: { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 },
+  components: { Plus, Pencil, Trash2 },
+
+  setup() {
+    const budgetStore = useBudgetStore()
+    const catStore = useCategoriesStore()
+    return { budgetStore, catStore }
+  },
 
   data() {
     return {
@@ -179,9 +170,6 @@ export default defineComponent({
   },
 
   computed: {
-    budgetStore() {
-      return useBudgetStore()
-    },
     totalSpent(): number {
       return this.budgetStore.progress.reduce((s, i) => s + i.spent, 0)
     },
@@ -192,37 +180,16 @@ export default defineComponent({
       if (!this.budgetStore.totalBudgeted) return 0
       return (this.totalSpent / this.budgetStore.totalBudgeted) * 100
     },
-    isCurrentPeriod(): boolean {
-      return this.budgetStore.activePeriod === currentPeriod()
-    },
     availableCategories() {
-      const catStore = useCategoriesStore()
       const existingIds = new Set(
         this.budgetStore.activeItems.map((i) => i.categoryId),
       )
-      return catStore.categories.filter((c) => !existingIds.has(c.id))
+      return this.catStore.categories.filter((c) => !existingIds.has(c.id))
     },
   },
 
   methods: {
     formatCurrency,
-    formatPeriod,
-
-    prevPeriod() {
-      const [year, month] = this.budgetStore.activePeriod.split('-').map(Number)
-      const d = new Date(year, month - 2, 1)
-      this.budgetStore.setPeriod(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      )
-    },
-
-    nextPeriod() {
-      const [year, month] = this.budgetStore.activePeriod.split('-').map(Number)
-      const d = new Date(year, month, 1)
-      this.budgetStore.setPeriod(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      )
-    },
 
     openEdit(categoryId: string, name: string, limit: number) {
       this.editingId = categoryId

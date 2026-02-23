@@ -42,7 +42,7 @@
         sub="Credit cards + loans"
       />
       <StatCard
-        label="Spent This Month"
+        label="Spent"
         :value="formatCurrency(txStore.totalSpentThisMonth)"
         :icon="ArrowUpRight"
         icon-bg="bg-amber-50 dark:bg-amber-900/20"
@@ -56,7 +56,7 @@
       <SpendingLineChart :points="txStore.monthlySpending" />
       <SpendingPieChart
         :by-category="currentMonthSpending"
-        :active-period="currentPeriod"
+        :active-period="monthStore.activePeriod"
       />
     </div>
 
@@ -136,7 +136,8 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import TransactionRow from '@/components/transactions/TransactionRow.vue'
 import { useAccountsStore } from '@/stores/accounts'
 import { useTransactionsStore } from '@/stores/transactions'
-import { formatCurrency, currentPeriod, formatPeriod } from '@/lib/currency'
+import { useMonthStore } from '@/stores/month'
+import { formatCurrency, formatPeriod } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
 export default defineComponent({
@@ -151,6 +152,13 @@ export default defineComponent({
     TransactionRow,
   },
 
+  setup() {
+    const accountsStore = useAccountsStore()
+    const txStore = useTransactionsStore()
+    const monthStore = useMonthStore()
+    return { accountsStore, txStore, monthStore }
+  },
+
   data() {
     return {
       TrendingUp,
@@ -159,17 +167,10 @@ export default defineComponent({
       ArrowUpRight,
       ArrowLeftRight,
       Upload,
-      currentPeriod: currentPeriod(),
     }
   },
 
   computed: {
-    accountsStore() {
-      return useAccountsStore()
-    },
-    txStore() {
-      return useTransactionsStore()
-    },
     greeting(): string {
       const h = new Date().getHours()
       if (h < 12) return 'Good morning'
@@ -180,11 +181,11 @@ export default defineComponent({
       return 'there'
     },
     currentMonthLabel(): string {
-      return formatPeriod(this.currentPeriod)
+      return formatPeriod(this.monthStore.activePeriod)
     },
     currentMonthSpending(): Record<string, number> {
       const data = this.txStore.monthlySpending.find(
-        (m) => m.period === this.currentPeriod,
+        (m) => m.period === this.monthStore.activePeriod,
       )
       return data?.byCategory ?? {}
     },
