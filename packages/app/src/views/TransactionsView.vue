@@ -194,6 +194,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useAccountsStore } from '@/stores/accounts'
 import { useMonthStore } from '@/stores/month'
+import { useCategoriesStore } from '@/stores/categories'
 import { formatCurrency, dateToPeriod } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
@@ -221,7 +222,8 @@ export default defineComponent({
     const txStore = useTransactionsStore()
     const accountsStore = useAccountsStore()
     const monthStore = useMonthStore()
-    return { txStore, accountsStore, monthStore }
+    const catStore = useCategoriesStore()
+    return { txStore, accountsStore, monthStore, catStore }
   },
 
   data() {
@@ -250,6 +252,8 @@ export default defineComponent({
       const s = this.search.toLowerCase()
       const activePeriod = this.monthStore.activePeriod
       return this.txStore.sorted.filter((t) => {
+        const cat = this.catStore.byName[t.category.toLowerCase()]
+        if (cat?.isInternalTransfer) return false
         if (
           s &&
           !t.description.toLowerCase().includes(s) &&

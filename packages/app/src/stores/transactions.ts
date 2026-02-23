@@ -13,6 +13,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuthStore } from './auth'
 import { useMonthStore } from './month'
+import { useCategoriesStore } from './categories'
 import { dateToPeriod } from '@/lib/currency'
 import type { Transaction, MonthlySpending } from '@/types'
 
@@ -42,21 +43,37 @@ export const useTransactionsStore = defineStore('transactions', {
     },
 
     monthlySpending(): MonthlySpending[] {
+      const catStore = useCategoriesStore()
       const periods = Object.keys(this.byPeriod).sort()
       return periods.map((period) => {
-        const txs = this.byPeriod[period].filter((t) => t.type === 'debit')
+        const periodTxs = this.byPeriod[period].filter((t) => {
+          const cat = catStore.byName[t.category.toLowerCase()]
+          return !cat?.isInternalTransfer
+        })
         const byCategory: Record<string, number> = {}
-        let total = 0
-        for (const tx of txs) {
-          byCategory[tx.category] = (byCategory[tx.category] ?? 0) + tx.amount
-          total += tx.amount
+        for (const tx of periodTxs) {
+          const delta = tx.type === 'debit' ? tx.amount : -tx.amount
+          byCategory[tx.category] = (byCategory[tx.category] ?? 0) + delta
         }
+        // Drop categories where refunds exceed spending (net <= 0)
+        for (const cat of Object.keys(byCategory)) {
+          if (byCategory[cat] <= 0) delete byCategory[cat]
+        }
+        const total = Object.values(byCategory).reduce((s, v) => s + v, 0)
         return { period, total, byCategory }
       })
     },
 
     categories(): string[] {
-      const cats = new Set(this.transactions.map((t) => t.category))
+      const catStore = useCategoriesStore()
+      const cats = new Set(
+        this.transactions
+          .filter((t) => {
+            const cat = catStore.byName[t.category.toLowerCase()]
+            return !cat?.isInternalTransfer
+          })
+          .map((t) => t.category),
+      )
       return [...cats].sort()
     },
 
@@ -72,21 +89,17 @@ export const useTransactionsStore = defineStore('transactions', {
 
     totalSpentThisMonth(): number {
       const monthStore = useMonthStore()
-      return (this.byPeriod[monthStore.activePeriod] ?? [])
-        .filter((t) => t.type === 'debit')
-        .reduce((sum, t) => sum + t.amount, 0)
+      const spending = this.monthlySpending.find((s) => s.period === monthStore.activePeriod)
+      return spending?.total ?? 0
     },
 
     topCategoryThisMonth(): string {
       const monthStore = useMonthStore()
-      const txs = (this.byPeriod[monthStore.activePeriod] ?? []).filter((t) => t.type === 'debit')
-      const by: Record<string, number> = {}
-      for (const tx of txs) {
-        by[tx.category] = (by[tx.category] ?? 0) + tx.amount
-      }
+      const spending = this.monthlySpending.find((s) => s.period === monthStore.activePeriod)
+      if (!spending) return ''
       let top = ''
       let topAmt = 0
-      for (const [cat, amt] of Object.entries(by)) {
+      for (const [cat, amt] of Object.entries(spending.byCategory)) {
         if (amt > topAmt) {
           topAmt = amt
           top = cat

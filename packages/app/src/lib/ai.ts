@@ -4,6 +4,7 @@ import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import type { AISettings, ExtractedFileData, AccountType } from "@/types";
 import { readFileAsBase64 } from "@/lib/csv";
+import { DEFAULT_CATEGORIES } from "@/stores/categories";
 
 function getModel(settings: AISettings) {
   if (settings.provider === "anthropic") {
@@ -98,18 +99,26 @@ Rules:
 - Extract the closing/ending balance (closingBalance) — this is the most important balance field. It is the account balance at the end of the statement period. Banks label it many ways: "New Balance", "Closing Balance", "Statement Balance", "Current Balance", "Ending Balance", "Balance Due", "Amount Due". Always extract this as a positive number.
 - Extract the opening/previous balance (openingBalance) if present. Banks label it: "Previous Balance", "Opening Balance", "Balance Forward", "Prior Balance".
 - If a field is not present in the document, omit it entirely — do not guess or make up values
-Categories (pick the single best match):
-Food: Groceries, Restaurants & Bars, Coffee & Tea, Fast Food, Food Delivery
-Transportation: Gas & Fuel, Public Transit, Rideshare & Taxi, Parking & Tolls, Car Maintenance, Car Insurance
-Travel: Flights, Hotels & Lodging, Car Rental, Travel & Vacation
-Housing: Rent & Mortgage, Home Utilities, Internet & Phone, Home Maintenance, Home Improvement
-Shopping: Clothing & Apparel, Electronics & Tech, Online Shopping, Home & Garden, Gifts
-Entertainment: Streaming Services, Movies & Events, Gaming, Sports & Recreation, Books & Magazines, Hobbies
-Healthcare: Doctor & Medical, Dental & Vision, Pharmacy, Fitness & Gym, Mental Health
-Personal Care: Hair & Beauty, Personal Care
-Education: Tuition & Fees, Books & Supplies, Courses & Training, Childcare
-Finance: Income, Investment Income, Freelance Income, Internal Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
-Other: Pets, Charity & Donations, Business Expenses, Other
+Categories (pick the single best match and use JUST the id):
+${JSON.stringify(
+  DEFAULT_CATEGORIES.map((c) => c.name),
+  null,
+  2
+)}
+
+Category guidance:
+- "Eating Out" covers restaurants, fast food, coffee shops, bars, and food delivery
+- "Transportation" covers gas, public transit, rideshare, parking, tolls, car maintenance, and car insurance
+- "Travel" covers flights, hotels, car rentals, and vacation expenses
+- "Housing" covers rent, mortgage, utilities, internet, phone bills, and home repairs
+- "Shopping" covers clothing, electronics, online orders, household goods, and gifts
+- "Entertainment" covers streaming services, movies, gaming, sports, books, and hobbies
+- "Health & Wellness" covers doctor visits, dental, pharmacy, gym memberships, and mental health
+- "Personal Care" covers haircuts, beauty products, and grooming
+- "Education" covers tuition, school supplies, courses, and childcare
+- "Income" covers all income: wages, investment returns, freelance, and refunds
+- "Savings" covers transfers into savings or investment accounts
+- "Fees & Charges" covers bank fees, interest charges, taxes, and insurance premiums
 IMPORTANT — Internal Transfer rule: Use "Internal Transfer" for ANY transaction that moves money between the user's own accounts. This includes: transfers between checking/savings accounts, credit card payments (e.g. "AUTOPAY", "ONLINE PAYMENT", "PAYMENT - THANK YOU"), balance transfers, loan payments made from a checking account to a loan account held at the same or different institution. Do NOT use "Internal Transfer" for payments to external parties.`;
 
 function mapExtractedObject(
@@ -205,17 +214,31 @@ export async function categorizeTransactions(
     model,
     schema: CategorizationSchema,
     prompt: `Categorize each transaction description into the single best matching category from this list:
-Food: Groceries, Restaurants & Bars, Coffee & Tea, Fast Food, Food Delivery
-Transportation: Gas & Fuel, Public Transit, Rideshare & Taxi, Parking & Tolls, Car Maintenance, Car Insurance
-Travel: Flights, Hotels & Lodging, Car Rental, Travel & Vacation
-Housing: Rent & Mortgage, Home Utilities, Internet & Phone, Home Maintenance, Home Improvement
-Shopping: Clothing & Apparel, Electronics & Tech, Online Shopping, Home & Garden, Gifts
-Entertainment: Streaming Services, Movies & Events, Gaming, Sports & Recreation, Books & Magazines, Hobbies
-Healthcare: Doctor & Medical, Dental & Vision, Pharmacy, Fitness & Gym, Mental Health
-Personal Care: Hair & Beauty, Personal Care
-Education: Tuition & Fees, Books & Supplies, Courses & Training, Childcare
-Finance: Income, Investment Income, Freelance Income, Internal Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
-Other: Pets, Charity & Donations, Business Expenses, Other
+Food: Eating Out, Groceries
+Transportation: Transportation
+Travel: Travel
+Housing: Housing
+Shopping: Shopping
+Entertainment: Entertainment
+Health: Health & Wellness
+Personal Care: Personal Care
+Education: Education
+Finance: Income, Savings, Internal Transfer, ATM & Cash, Fees & Charges
+Other: Pets, Charity, Business, Other
+
+Category guidance:
+- "Eating Out" covers restaurants, fast food, coffee shops, bars, and food delivery
+- "Transportation" covers gas, public transit, rideshare, parking, tolls, car maintenance, and car insurance
+- "Travel" covers flights, hotels, car rentals, and vacation expenses
+- "Housing" covers rent, mortgage, utilities, internet, phone bills, and home repairs
+- "Shopping" covers clothing, electronics, online orders, household goods, and gifts
+- "Entertainment" covers streaming services, movies, gaming, sports, books, and hobbies
+- "Health & Wellness" covers doctor visits, dental, pharmacy, gym memberships, and mental health
+- "Personal Care" covers haircuts, beauty products, and grooming
+- "Education" covers tuition, school supplies, courses, and childcare
+- "Income" covers all income: wages, investment returns, freelance, and refunds
+- "Savings" covers transfers into savings or investment accounts
+- "Fees & Charges" covers bank fees, interest charges, taxes, and insurance premiums
 IMPORTANT — Internal Transfer rule: Use "Internal Transfer" for ANY transaction that moves money between the user's own accounts. This includes: transfers between checking/savings accounts, credit card payments (e.g. "AUTOPAY", "ONLINE PAYMENT", "PAYMENT - THANK YOU"), balance transfers, loan payments made from a checking account to a loan account held at the same or different institution. Do NOT use "Internal Transfer" for payments to external parties.
 
 Descriptions:
