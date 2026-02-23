@@ -4,9 +4,16 @@ export type AccountType =
   | "checking"
   | "savings"
   | "credit_card"
-  | "loan"
+  | "auto_loan"
   | "mortgage"
+  | "personal_loan"
   | "investment"
+  | "roth_ira"
+  | "traditional_ira"
+  | "roth_401k"
+  | "traditional_401k"
+  | "crypto"
+  | "loan"
   | "other";
 
 export interface Account {
@@ -18,10 +25,16 @@ export interface Account {
   accountNumber?: string;
   /** Name of the account holder */
   holderName?: string;
-  /** For credit cards */
+  /** Annual Percentage Rate — for loans, mortgages, credit cards */
   interestRate?: number;
+  /** APR alias for loan/mortgage accounts */
+  apr?: number;
+  /** Annual Percentage Yield — for savings accounts */
+  apy?: number;
   /** Credit limit for credit cards */
   creditLimit?: number;
+  /** Ticker symbol for crypto wallets, e.g. "BTC", "ETH", "SOL" */
+  cryptoSymbol?: string;
   currency: string;
   lastUpdated: string; // ISO date
   fileIds: string[];
