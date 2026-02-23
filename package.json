@@ -7,8 +7,8 @@
   ],
   "scripts": {
     "dev": "bun run --cwd packages/app dev",
-    "dev:local": "concurrently --kill-others-on-fail --names \"emulators,app\" --prefix-colors \"yellow,cyan\" \"firebase emulators:start\" \"VITE_USE_EMULATOR=true bun run --cwd packages/app dev\"",
-    "emulators": "firebase emulators:start",
+    "dev:local": "concurrently --kill-others-on-fail --names \"emulators,app\" --prefix-colors \"yellow,cyan\" \"firebase emulators:start --import=./emulator-data --export-on-exit\" \"VITE_USE_EMULATOR=true bun run --cwd packages/app dev\"",
+    "emulators": "firebase emulators:start --import=./emulator-data --export-on-exit",
     "build": "bun run --cwd packages/app build",
     "preview": "bun run --cwd packages/app preview"
   },
