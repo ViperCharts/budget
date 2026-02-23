@@ -67,12 +67,6 @@
           <option value="debit">Expenses</option>
           <option value="credit">Income</option>
         </select>
-
-        <!-- Period filter -->
-        <select v-model="periodFilter" class="input w-40">
-          <option value="">All periods</option>
-          <option v-for="p in availablePeriods" :key="p" :value="p">{{ formatPeriod(p) }}</option>
-        </select>
       </div>
     </div>
 
@@ -199,7 +193,8 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useAccountsStore } from '@/stores/accounts'
-import { formatCurrency, formatPeriod, dateToPeriod } from '@/lib/currency'
+import { useMonthStore } from '@/stores/month'
+import { formatCurrency, dateToPeriod } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
 const PAGE_SIZE = 50
@@ -225,7 +220,8 @@ export default defineComponent({
   setup() {
     const txStore = useTransactionsStore()
     const accountsStore = useAccountsStore()
-    return { txStore, accountsStore }
+    const monthStore = useMonthStore()
+    return { txStore, accountsStore, monthStore }
   },
 
   data() {
@@ -237,7 +233,6 @@ export default defineComponent({
       accountFilter: '',
       categoryFilter: '',
       typeFilter: '',
-      periodFilter: '',
       page: 1,
       showDetailModal: false,
       selectedTransaction: null as Transaction | null,
@@ -251,11 +246,9 @@ export default defineComponent({
     categories(): string[] {
       return this.txStore.categories
     },
-    availablePeriods(): string[] {
-      return Object.keys(this.txStore.byPeriod).sort().reverse()
-    },
     filtered(): Transaction[] {
       const s = this.search.toLowerCase()
+      const activePeriod = this.monthStore.activePeriod
       return this.txStore.sorted.filter((t) => {
         if (
           s &&
@@ -266,7 +259,7 @@ export default defineComponent({
         if (this.accountFilter && t.accountId !== this.accountFilter) return false
         if (this.categoryFilter && t.category !== this.categoryFilter) return false
         if (this.typeFilter && t.type !== this.typeFilter) return false
-        if (this.periodFilter && dateToPeriod(t.date) !== this.periodFilter) return false
+        if (dateToPeriod(t.date) !== activePeriod) return false
         return true
       })
     },
@@ -297,12 +290,11 @@ export default defineComponent({
     accountFilter() { this.page = 1 },
     categoryFilter() { this.page = 1 },
     typeFilter() { this.page = 1 },
-    periodFilter() { this.page = 1 },
+    'monthStore.activePeriod'() { this.page = 1 },
   },
 
   methods: {
     formatCurrency,
-    formatPeriod,
     openDetail(tx: Transaction) {
       this.selectedTransaction = tx
       this.showDetailModal = true

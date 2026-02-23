@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from './auth'
+import { useMonthStore } from './month'
 import { dateToPeriod } from '@/lib/currency'
 import type { Transaction, MonthlySpending } from '@/types'
 
@@ -70,17 +71,15 @@ export const useTransactionsStore = defineStore('transactions', {
     },
 
     totalSpentThisMonth(): number {
-      const now = new Date()
-      const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-      return (this.byPeriod[period] ?? [])
+      const monthStore = useMonthStore()
+      return (this.byPeriod[monthStore.activePeriod] ?? [])
         .filter((t) => t.type === 'debit')
         .reduce((sum, t) => sum + t.amount, 0)
     },
 
     topCategoryThisMonth(): string {
-      const now = new Date()
-      const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-      const txs = (this.byPeriod[period] ?? []).filter((t) => t.type === 'debit')
+      const monthStore = useMonthStore()
+      const txs = (this.byPeriod[monthStore.activePeriod] ?? []).filter((t) => t.type === 'debit')
       const by: Record<string, number> = {}
       for (const tx of txs) {
         by[tx.category] = (by[tx.category] ?? 0) + tx.amount
