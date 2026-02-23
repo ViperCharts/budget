@@ -38,6 +38,13 @@ export const useAccountsStore = defineStore('accounts', {
     byId(): Record<string, Account> {
       return Object.fromEntries(this.accounts.map((a) => [a.id, a]))
     },
+    byAccountNumber(): Record<string, Account> {
+      const map: Record<string, Account> = {}
+      for (const a of this.accounts) {
+        if (a.accountNumber) map[a.accountNumber] = a
+      }
+      return map
+    },
   },
 
   actions: {
@@ -75,6 +82,8 @@ export const useAccountsStore = defineStore('accounts', {
         currency: account.currency ?? 'USD',
         lastUpdated: new Date().toISOString(),
         fileIds: account.fileIds ?? [],
+        ...(account.accountNumber !== undefined && { accountNumber: account.accountNumber }),
+        ...(account.holderName !== undefined && { holderName: account.holderName }),
         ...(account.interestRate !== undefined && { interestRate: account.interestRate }),
         ...(account.creditLimit !== undefined && { creditLimit: account.creditLimit }),
       }

@@ -22,7 +22,7 @@ import { useAccountsStore } from "./accounts";
 import { useTransactionsStore } from "./transactions";
 import { readFileAsText, detectFormat, csvToText, parseCSV } from "@/lib/csv";
 import { extractFromText, extractFromPDF } from "@/lib/ai";
-import { nanoid } from "@/lib/nanoid";
+import { nanoid, makeTransactionId } from "@/lib/nanoid";
 import type { BudgetFile, FileFormat } from "@/types";
 
 export interface FileTreeNode {
@@ -170,33 +170,57 @@ export const useFilesStore = defineStore("files", {
               }
             }
 
-            // Upsert account
+            // Upsert account — deduplicate by account number if available
             let accountId: string | undefined;
             if (extracted.accountName || extracted.accountType) {
-              const account = await accountsStore.upsertAccount({
-                name: extracted.accountName ?? "Unknown Account",
-                type: extracted.accountType ?? "checking",
-                balance: extracted.closingBalance ?? 0,
-                interestRate: extracted.interestRate,
-                creditLimit: extracted.creditLimit,
-                fileIds: [id],
-              });
-              accountId = account?.id;
+              const existingAccount = extracted.accountNumber
+                ? accountsStore.byAccountNumber[extracted.accountNumber]
+                : undefined;
+
+              if (existingAccount) {
+                // Reuse existing account — update balance and add this file
+                const updatedFileIds = existingAccount.fileIds.includes(id)
+                  ? existingAccount.fileIds
+                  : [...existingAccount.fileIds, id];
+                await accountsStore.upsertAccount({
+                  ...existingAccount,
+                  balance: extracted.closingBalance ?? existingAccount.balance,
+                  fileIds: updatedFileIds,
+                });
+                accountId = existingAccount.id;
+              } else {
+                // Create new account
+                const account = await accountsStore.upsertAccount({
+                  name: extracted.accountName ?? "Unknown Account",
+                  type: extracted.accountType ?? "checking",
+                  balance: extracted.closingBalance ?? 0,
+                  accountNumber: extracted.accountNumber,
+                  holderName: extracted.holderName,
+                  interestRate: extracted.interestRate,
+                  creditLimit: extracted.creditLimit,
+                  fileIds: [id],
+                });
+                accountId = account?.id;
+              }
             }
 
-            // Save transactions
+            // Save transactions — IDs are deterministic to prevent duplicates on re-upload
             if (extracted.transactions.length > 0 && accountId) {
               await transactionsStore.addTransactions(
-                extracted.transactions.map((t) => ({
-                  id: nanoid(),
-                  accountId,
-                  fileId: id,
-                  date: t.date ?? new Date().toISOString().split("T")[0],
-                  description: t.description ?? "",
-                  amount: t.amount ?? 0,
-                  type: t.type ?? "debit",
-                  category: t.category ?? "Other",
-                }))
+                extracted.transactions.map((t) => {
+                  const date = t.date ?? new Date().toISOString().split("T")[0];
+                  const description = t.description ?? "";
+                  return {
+                    id: makeTransactionId(accountId!, date, description),
+                    accountId: accountId!,
+                    fileId: id,
+                    date,
+                    description,
+                    amount: t.amount ?? 0,
+                    type: t.type ?? "debit",
+                    category: t.category ?? "Other",
+                  };
+                })
               );
             }
 
