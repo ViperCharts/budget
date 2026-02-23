@@ -49,6 +49,12 @@
           />
         </div>
 
+        <!-- Account filter -->
+        <select v-model="accountFilter" class="input w-44">
+          <option value="">All accounts</option>
+          <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        </select>
+
         <!-- Category filter -->
         <select v-model="categoryFilter" class="input w-44">
           <option value="">All categories</option>
@@ -192,6 +198,7 @@ import TransactionDetailModal from '@/components/transactions/TransactionDetailM
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useTransactionsStore } from '@/stores/transactions'
+import { useAccountsStore } from '@/stores/accounts'
 import { formatCurrency, formatPeriod, dateToPeriod } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
@@ -217,7 +224,8 @@ export default defineComponent({
 
   setup() {
     const txStore = useTransactionsStore()
-    return { txStore }
+    const accountsStore = useAccountsStore()
+    return { txStore, accountsStore }
   },
 
   data() {
@@ -226,6 +234,7 @@ export default defineComponent({
       ArrowLeftRight,
       viewMode: 'list' as 'list' | 'calendar',
       search: '',
+      accountFilter: '',
       categoryFilter: '',
       typeFilter: '',
       periodFilter: '',
@@ -236,6 +245,9 @@ export default defineComponent({
   },
 
   computed: {
+    accounts() {
+      return this.accountsStore.accounts
+    },
     categories(): string[] {
       return this.txStore.categories
     },
@@ -251,6 +263,7 @@ export default defineComponent({
           !t.category.toLowerCase().includes(s)
         )
           return false
+        if (this.accountFilter && t.accountId !== this.accountFilter) return false
         if (this.categoryFilter && t.category !== this.categoryFilter) return false
         if (this.typeFilter && t.type !== this.typeFilter) return false
         if (this.periodFilter && dateToPeriod(t.date) !== this.periodFilter) return false
@@ -280,18 +293,11 @@ export default defineComponent({
   },
 
   watch: {
-    search() {
-      this.page = 1
-    },
-    categoryFilter() {
-      this.page = 1
-    },
-    typeFilter() {
-      this.page = 1
-    },
-    periodFilter() {
-      this.page = 1
-    },
+    search() { this.page = 1 },
+    accountFilter() { this.page = 1 },
+    categoryFilter() { this.page = 1 },
+    typeFilter() { this.page = 1 },
+    periodFilter() { this.page = 1 },
   },
 
   methods: {

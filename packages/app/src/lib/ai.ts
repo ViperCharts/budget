@@ -56,13 +56,25 @@ const ExtractedSchema = z.object({
   holderName: z
     .string()
     .optional()
-    .describe('Full name of the account holder as it appears on the statement, e.g. "John Smith"'),
+    .describe(
+      'Full name of the account holder as it appears on the statement, e.g. "John Smith"'
+    ),
   statementDate: z
     .string()
     .optional()
     .describe("Statement period end date in YYYY-MM-DD"),
-  openingBalance: z.number().optional(),
-  closingBalance: z.number().optional(),
+  openingBalance: z
+    .number()
+    .optional()
+    .describe(
+      'Balance at the start of the statement period. Look for labels like "Previous Balance", "Opening Balance", "Balance Forward", "Prior Balance". Dollar amount as a positive number.'
+    ),
+  closingBalance: z
+    .number()
+    .optional()
+    .describe(
+      'Balance at the end of the statement period — the current amount owed or available. Look for labels like "New Balance", "Closing Balance", "Statement Balance", "Current Balance", "Ending Balance", "Balance Due". Dollar amount as a positive number.'
+    ),
   interestRate: z
     .number()
     .optional()
@@ -83,6 +95,8 @@ Rules:
 - For accountType: use "credit_card" for credit card statements, "checking" for checking/debit, "savings" for savings accounts
 - Interest rate should be a number like 23.99 (not 0.2399) representing the APR percentage
 - Extract the account holder's name exactly as it appears on the statement (holderName)
+- Extract the closing/ending balance (closingBalance) — this is the most important balance field. It is the account balance at the end of the statement period. Banks label it many ways: "New Balance", "Closing Balance", "Statement Balance", "Current Balance", "Ending Balance", "Balance Due", "Amount Due". Always extract this as a positive number.
+- Extract the opening/previous balance (openingBalance) if present. Banks label it: "Previous Balance", "Opening Balance", "Balance Forward", "Prior Balance".
 - If a field is not present in the document, omit it entirely — do not guess or make up values
 Categories (pick the single best match):
 Food: Groceries, Restaurants & Bars, Coffee & Tea, Fast Food, Food Delivery
