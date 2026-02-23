@@ -221,7 +221,8 @@ import { useTransactionsStore } from '@/stores/transactions'
 import { useAccountsStore } from '@/stores/accounts'
 import { useMonthStore } from '@/stores/month'
 import { useCategoriesStore } from '@/stores/categories'
-import { formatCurrency, dateToPeriod } from '@/lib/currency'
+import { formatCurrency } from '@/lib/currency'
+import { filterTransactions, sumIncome, sumExpenses } from '@/lib/calculator'
 import { formatAccountName } from '@/lib/account'
 import type { Transaction } from '@/types'
 
@@ -309,24 +310,13 @@ export default defineComponent({
     },
 
     filtered(): Transaction[] {
-      const s = this.search.toLowerCase()
-      const activePeriod = this.monthStore.activePeriod
-      return this.txStore.sorted.filter((t) => {
-        const cat = this.catStore.byName[t.category.toLowerCase()]
-        if (cat?.isInternalTransfer) return false
-        // Hide ignored unless toggle is on
-        if (t.ignore && !this.showIgnored) return false
-        if (
-          s &&
-          !t.description.toLowerCase().includes(s) &&
-          !t.category.toLowerCase().includes(s)
-        )
-          return false
-        if (this.accountFilter && t.accountId !== this.accountFilter) return false
-        if (this.categoryFilter && t.category !== this.categoryFilter) return false
-        if (this.typeFilter && t.type !== this.typeFilter) return false
-        if (dateToPeriod(t.date) !== activePeriod) return false
-        return true
+      return filterTransactions(this.txStore.sorted, this.catStore.byName, {
+        period: this.monthStore.activePeriod,
+        search: this.search,
+        accountId: this.accountFilter,
+        category: this.categoryFilter,
+        type: this.typeFilter as 'debit' | 'credit' | undefined,
+        showIgnored: this.showIgnored,
       })
     },
 
@@ -340,15 +330,11 @@ export default defineComponent({
     },
 
     totalIncome(): number {
-      return this.filtered
-        .filter((t) => t.type === 'credit' && !t.ignore)
-        .reduce((s, t) => s + t.amount, 0)
+      return sumIncome(this.filtered)
     },
 
     totalExpenses(): number {
-      return this.filtered
-        .filter((t) => t.type === 'debit' && !t.ignore)
-        .reduce((s, t) => s + t.amount, 0)
+      return sumExpenses(this.filtered)
     },
 
     net(): number {

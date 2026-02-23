@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { useTransactionsStore } from './transactions'
 import { useCategoriesStore } from './categories'
 import { useMonthStore } from './month'
+import { filterTransactions } from '@/lib/calculator'
 import type { BudgetItem } from '@/types'
 import { nanoid } from '@/lib/nanoid'
 
@@ -47,15 +48,17 @@ export const useBudgetStore = defineStore('budget', {
       const txStore = useTransactionsStore()
       const catStore = useCategoriesStore()
 
-      const txs = (txStore.byPeriod[monthStore.activePeriod] ?? []).filter(
-        (t) => t.type === 'debit',
+      const periodTxs = filterTransactions(
+        txStore.byPeriod[monthStore.activePeriod] ?? [],
+        catStore.byName,
+        { period: monthStore.activePeriod, type: 'debit' },
       )
 
-      // Aggregate spending by category id for the active period
+      // Aggregate debit spending by category id for the active period
       const spentById: Record<string, number> = {}
-      for (const t of txs) {
+      for (const t of periodTxs) {
         const tCat = catStore.byName[t.category.toLowerCase()]
-        if (!tCat || tCat.isInternalTransfer) continue
+        if (!tCat) continue
         spentById[tCat.id] = (spentById[tCat.id] ?? 0) + t.amount
       }
 
