@@ -46,9 +46,12 @@ export interface Category {
   id: string
   name: string
   color: string
+  emoji?: string
   icon?: string
   budgetLimit?: number
   parentId?: string
+  /** True for user-created categories (synced to Firestore) */
+  isCustom?: boolean
 }
 
 // ─── Budget Types ─────────────────────────────────────────────────────────────

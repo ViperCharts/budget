@@ -21,10 +21,16 @@ import TopBar from './TopBar.vue'
 import { useFilesStore } from '@/stores/files'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useAccountsStore } from '@/stores/accounts'
+import { useCategoriesStore } from '@/stores/categories'
 
 export default defineComponent({
   name: 'AppShell',
   components: { RouterView, SideNav, TopBar },
+
+  setup() {
+    const categoriesStore = useCategoriesStore()
+    return { categoriesStore }
+  },
 
   data() {
     return {
@@ -40,12 +46,14 @@ export default defineComponent({
     filesStore.subscribe()
     txStore.subscribe()
     accountsStore.subscribe()
+    this.categoriesStore.subscribe()
   },
 
   unmounted() {
     useFilesStore().unsubscribe()
     useTransactionsStore().unsubscribe()
     useAccountsStore().unsubscribe()
+    this.categoriesStore.unsubscribe()
   },
 })
 </script>
