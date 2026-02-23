@@ -1,67 +1,123 @@
 <template>
   <div>
-    <!-- Day-of-week header row -->
-    <div
-      class="grid grid-cols-7 border-l border-t border-[var(--color-border)] rounded-tl-lg rounded-tr-lg overflow-hidden"
-    >
+    <!-- ── Mobile: vertical day list ── -->
+    <div class="md:hidden divide-y divide-[var(--color-border)]">
       <div
-        v-for="label in DAY_LABELS"
-        :key="label"
-        class="border-r border-b border-[var(--color-border)] bg-gray-50 dark:bg-gray-800/60 py-2 text-center text-xs font-heading font-semibold text-gray-400 uppercase tracking-wider"
+        v-for="cell in monthDays"
+        :key="cell.dateStr"
+        :class="cell.transactions.length ? '' : 'opacity-40'"
       >
-        {{ label }}
-      </div>
-    </div>
-
-    <!-- Calendar grid -->
-    <div
-      class="grid grid-cols-7 border-l border-[var(--color-border)] rounded-bl-lg rounded-br-lg overflow-hidden"
-    >
-      <div
-        v-for="(cell, i) in calendarDays"
-        :key="i"
-        :class="[
-          'min-h-[108px] border-r border-b border-[var(--color-border)] p-1.5',
-          cell.date === null
-            ? 'bg-gray-50/60 dark:bg-gray-900/30'
-            : 'bg-[var(--color-surface)]',
-        ]"
-      >
-        <!-- Day number -->
-        <div v-if="cell.date !== null" class="flex justify-end mb-1">
+        <!-- Day header -->
+        <div class="flex items-center gap-2.5 px-3 py-2">
           <span
             :class="[
-              'w-6 h-6 flex items-center justify-center text-xs font-heading font-medium rounded-full',
+              'w-8 h-8 flex items-center justify-center text-sm font-heading font-semibold rounded-full shrink-0',
               cell.isToday
                 ? 'bg-brand-600 text-white'
-                : 'text-gray-600 dark:text-gray-400',
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
             ]"
           >
             {{ cell.date }}
           </span>
+          <span class="text-sm font-body text-gray-500 dark:text-gray-400">
+            {{ dayName(cell.dateStr!) }}
+          </span>
+          <span
+            v-if="cell.transactions.length"
+            class="ml-auto text-xs font-body text-gray-400"
+          >
+            {{ cell.transactions.length }}
+            {{ cell.transactions.length === 1 ? 'txn' : 'txns' }}
+          </span>
         </div>
 
-        <!-- Transaction chips -->
-        <div v-if="cell.date !== null" class="space-y-0.5">
+        <!-- Transactions for this day -->
+        <div v-if="cell.transactions.length" class="pb-2 px-3 space-y-1">
           <button
-            v-for="tx in cell.visible"
+            v-for="tx in cell.transactions"
             :key="tx.id"
             :class="[
-              'w-full text-left text-xs px-1.5 rounded truncate font-body leading-5 transition-opacity hover:opacity-70 cursor-pointer',
+              'w-full flex items-center justify-between text-sm px-3 py-1.5 rounded cursor-pointer transition-opacity hover:opacity-70',
               tx.type === 'credit'
-                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300'
-                : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300',
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300'
+                : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300',
             ]"
             @click="$emit('transaction-click', tx)"
           >
-            {{ tx.description }}
+            <span class="truncate font-body">{{ tx.description }}</span>
+            <span class="font-heading font-semibold shrink-0 ml-3 text-xs">
+              {{ tx.type === 'credit' ? '+' : '-' }}{{ formatCurrency(tx.amount) }}
+            </span>
           </button>
-          <p
-            v-if="cell.overflow > 0"
-            class="text-xs px-1.5 font-body text-gray-400 leading-5"
-          >
-            +{{ cell.overflow }} more
-          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Desktop: calendar grid ── -->
+    <div class="hidden md:block">
+      <!-- Day-of-week header row -->
+      <div
+        class="grid grid-cols-7 border-l border-t border-[var(--color-border)] rounded-tl-lg rounded-tr-lg overflow-hidden"
+      >
+        <div
+          v-for="label in DAY_LABELS"
+          :key="label"
+          class="border-r border-b border-[var(--color-border)] bg-gray-50 dark:bg-gray-800/60 py-2 text-center text-xs font-heading font-semibold text-gray-400 uppercase tracking-wider"
+        >
+          {{ label }}
+        </div>
+      </div>
+
+      <!-- Calendar grid -->
+      <div
+        class="grid grid-cols-7 border-l border-[var(--color-border)] rounded-bl-lg rounded-br-lg overflow-hidden"
+      >
+        <div
+          v-for="(cell, i) in calendarDays"
+          :key="i"
+          :class="[
+            'min-h-[108px] border-r border-b border-[var(--color-border)] p-1.5',
+            cell.date === null
+              ? 'bg-gray-50/60 dark:bg-gray-900/30'
+              : 'bg-[var(--color-surface)]',
+          ]"
+        >
+          <!-- Day number -->
+          <div v-if="cell.date !== null" class="flex justify-end mb-1">
+            <span
+              :class="[
+                'w-6 h-6 flex items-center justify-center text-xs font-heading font-medium rounded-full',
+                cell.isToday
+                  ? 'bg-brand-600 text-white'
+                  : 'text-gray-600 dark:text-gray-400',
+              ]"
+            >
+              {{ cell.date }}
+            </span>
+          </div>
+
+          <!-- Transaction chips -->
+          <div v-if="cell.date !== null" class="space-y-0.5">
+            <button
+              v-for="tx in cell.visible"
+              :key="tx.id"
+              :class="[
+                'w-full text-left text-xs px-1.5 rounded truncate font-body leading-5 transition-opacity hover:opacity-70 cursor-pointer',
+                tx.type === 'credit'
+                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300',
+              ]"
+              @click="$emit('transaction-click', tx)"
+            >
+              {{ tx.description }}
+            </button>
+            <p
+              v-if="cell.overflow > 0"
+              class="text-xs px-1.5 font-body text-gray-400 leading-5"
+            >
+              +{{ cell.overflow }} more
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -71,6 +127,7 @@
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
 import { useMonthStore } from '@/stores/month'
+import { formatCurrency } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
@@ -184,6 +241,20 @@ export default defineComponent({
       }
 
       return cells
+    },
+
+    /** Only actual days (no leading/trailing empties) — used by the mobile list. */
+    monthDays(): CalendarCell[] {
+      return this.calendarDays.filter((c) => c.date !== null)
+    },
+  },
+
+  methods: {
+    formatCurrency,
+
+    dayName(dateStr: string): string {
+      const [y, m, d] = dateStr.split('-').map(Number)
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long' })
     },
   },
 })
