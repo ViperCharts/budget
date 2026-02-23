@@ -4,8 +4,11 @@
     :class="[
       transaction.ignore
         ? 'opacity-50 bg-gray-50 dark:bg-gray-800/20'
-        : 'hover:bg-gray-50 dark:hover:bg-gray-800/40',
+        : !categoryColor
+          ? 'hover:bg-gray-50 dark:hover:bg-gray-800/40'
+          : '',
     ]"
+    :style="rowStyle"
   >
     <!-- Type indicator -->
     <div
@@ -126,6 +129,16 @@ export default defineComponent({
     accountName(): string {
       const account = this.accountsStore.byId[this.transaction.accountId]
       return account ? formatAccountName(account) : ''
+    },
+
+    categoryColor(): string {
+      if (this.transaction.ignore) return ''
+      return this.categoriesStore.colorFor(this.transaction.category)
+    },
+
+    rowStyle(): Record<string, string> {
+      if (!this.categoryColor) return {}
+      return { backgroundColor: `${this.categoryColor}26` }
     },
 
     categoryOptions(): Record<string, SelectOption> {

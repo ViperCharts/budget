@@ -312,8 +312,6 @@ export default defineComponent({
       const s = this.search.toLowerCase()
       const activePeriod = this.monthStore.activePeriod
       return this.txStore.sorted.filter((t) => {
-        const cat = this.catStore.byName[t.category.toLowerCase()]
-        if (cat?.isInternalTransfer) return false
         // Hide ignored unless toggle is on
         if (t.ignore && !this.showIgnored) return false
         if (
