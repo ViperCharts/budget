@@ -8,14 +8,14 @@
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4"
         @keydown.esc="close"
       >
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="close" />
 
         <!-- Dialog -->
-        <div class="relative card shadow-xl w-full max-w-md z-10">
+        <div class="relative card shadow-xl w-full max-w-md z-10 rounded-b-none md:rounded-b-xl max-h-[85vh] overflow-y-auto">
           <!-- Header -->
           <div class="flex items-center justify-between mb-5">
             <h3 class="font-heading font-semibold text-gray-900 dark:text-white text-lg">
@@ -63,7 +63,7 @@
                   <button
                     v-for="swatch in COLOR_SWATCHES"
                     :key="swatch"
-                    class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                    class="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110"
                     :style="{
                       backgroundColor: swatch,
                       borderColor: form.color === swatch ? swatch : 'transparent',
@@ -97,11 +97,11 @@
               <label class="label">Emoji <span class="font-body font-normal text-gray-400 text-xs">(optional)</span></label>
 
               <!-- Quick-pick grid -->
-              <div class="flex flex-wrap gap-1.5 mb-2">
+              <div class="flex flex-wrap gap-1 mb-2">
                 <button
                   v-for="e in EMOJI_SUGGESTIONS"
                   :key="e"
-                  class="w-8 h-8 flex items-center justify-center text-lg rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  class="w-10 h-10 flex items-center justify-center text-lg rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   :class="form.emoji === e ? 'bg-gray-100 dark:bg-gray-700 ring-1 ring-brand-500' : ''"
                   :title="e"
                   @click="form.emoji = form.emoji === e ? '' : e"
@@ -123,9 +123,9 @@
 
           <!-- Actions -->
           <div class="flex items-center justify-end gap-3 mt-6">
-            <button class="btn-secondary" @click="close">Cancel</button>
+            <button class="btn-secondary min-h-[44px]" @click="close">Cancel</button>
             <button
-              class="btn-primary"
+              class="btn-primary min-h-[44px]"
               :disabled="!form.name.trim() || saving"
               @click="save"
             >

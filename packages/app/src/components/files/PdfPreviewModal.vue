@@ -8,13 +8,13 @@
     >
       <div
         v-if="modelValue && displayName"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4"
       >
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close" />
 
         <!-- Dialog -->
-        <div class="relative card shadow-2xl w-full max-w-3xl z-10 flex flex-col" style="max-height: 90vh">
+        <div class="relative card shadow-2xl w-full max-w-3xl z-10 flex flex-col rounded-b-none md:rounded-b-xl max-h-[95vh] md:max-h-[90vh]">
           <!-- Header -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
@@ -33,7 +33,7 @@
                 </p>
               </div>
             </div>
-            <button class="btn-ghost p-1.5 -mr-1 -mt-1" @click="close">
+            <button class="btn-ghost p-2 -mr-1 -mt-1 min-w-[44px] min-h-[44px] flex items-center justify-center" @click="close">
               <X class="w-4 h-4" />
             </button>
           </div>

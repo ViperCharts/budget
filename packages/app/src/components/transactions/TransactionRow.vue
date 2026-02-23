@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex items-center gap-4 py-3 px-4 transition-colors group"
+    class="flex items-center gap-3 md:gap-4 py-3 px-3 md:px-4 min-h-[56px] transition-colors group"
     :class="[
       transaction.ignore
         ? 'opacity-50 bg-gray-50 dark:bg-gray-800/20'
@@ -35,7 +35,7 @@
       >
         {{ transaction.description }}
       </p>
-      <div class="flex items-center gap-2 mt-0.5">
+      <div class="flex items-center gap-1.5 md:gap-2 mt-0.5">
         <span
           v-if="transaction.ignore"
           class="badge text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800"
@@ -48,7 +48,7 @@
         </span>
         <span
           v-if="accountName"
-          class="text-xs text-gray-400 font-body opacity-0 group-hover:opacity-100 transition-opacity"
+          class="text-xs text-gray-400 font-body hidden md:inline opacity-0 group-hover:opacity-100 transition-opacity"
         >
           · {{ accountName }}
         </span>
@@ -70,8 +70,8 @@
       }}{{ formatCurrency(transaction.amount) }}
     </p>
 
-    <!-- Category selector -->
-    <div class="shrink-0 w-44">
+    <!-- Category selector (hidden on mobile to save space) -->
+    <div class="shrink-0 w-44 hidden md:block">
       <SelectMenu
         :options="categoryOptions"
         :model-value="transaction.ignore ? '__ignore__' : transaction.category"

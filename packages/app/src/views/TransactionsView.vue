@@ -1,20 +1,20 @@
 <template>
-  <div class="space-y-5 max-w-5xl">
+  <div class="space-y-4 md:space-y-5 max-w-5xl">
     <!-- Header + filters -->
-    <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-      <div>
-        <h2 class="font-heading font-bold text-xl text-gray-900 dark:text-white">Transactions</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 font-body mt-0.5">
-          {{ filtered.length }} of {{ txStore.transactions.length }} transactions
-        </p>
-      </div>
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-heading font-bold text-lg md:text-xl text-gray-900 dark:text-white">Transactions</h2>
+          <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-body mt-0.5">
+            {{ filtered.length }} of {{ txStore.transactions.length }} transactions
+          </p>
+        </div>
 
-      <div class="flex flex-wrap gap-2 items-center">
         <!-- View toggle -->
         <div class="flex rounded-lg border border-[var(--color-border)] overflow-hidden shrink-0">
           <button
             :class="[
-              'px-3 py-2 transition-colors',
+              'px-3 py-2 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
               viewMode === 'list'
                 ? 'bg-brand-600 text-white'
                 : 'bg-[var(--color-surface)] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
@@ -26,7 +26,7 @@
           </button>
           <button
             :class="[
-              'px-3 py-2 transition-colors border-l border-[var(--color-border)]',
+              'px-3 py-2 transition-colors border-l border-[var(--color-border)] min-w-[44px] min-h-[44px] flex items-center justify-center',
               viewMode === 'calendar'
                 ? 'bg-brand-600 text-white'
                 : 'bg-[var(--color-surface)] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
@@ -37,15 +37,18 @@
             <CalendarDays class="w-4 h-4" />
           </button>
         </div>
+      </div>
 
+      <!-- Filters row -->
+      <div class="flex flex-wrap gap-2 items-center">
         <!-- Search -->
-        <div class="relative">
+        <div class="relative w-full sm:w-auto">
           <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             v-model="search"
             type="text"
             placeholder="Search..."
-            class="input pl-9 w-48"
+            class="input pl-9 w-full sm:w-48"
           />
         </div>
 
@@ -54,7 +57,7 @@
           :options="accountOptions"
           :model-value="accountFilter"
           placeholder="All accounts"
-          class="w-44"
+          class="w-[calc(50%-4px)] sm:w-44"
           @selected="accountFilter = $event"
         />
 
@@ -63,7 +66,7 @@
           :options="categoryOptions"
           :model-value="categoryFilter"
           placeholder="All categories"
-          class="w-44"
+          class="w-[calc(50%-4px)] sm:w-44"
           @selected="categoryFilter = $event"
         />
 
@@ -72,14 +75,14 @@
           :options="typeOptions"
           :model-value="typeFilter"
           placeholder="All types"
-          class="w-36"
+          class="w-[calc(50%-4px)] sm:w-36"
           @selected="typeFilter = $event"
         />
 
         <!-- Show ignored toggle -->
         <button
           :class="[
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-body border transition-colors',
+            'flex items-center gap-1.5 px-2.5 py-2 rounded text-xs font-body border transition-colors min-h-[44px]',
             showIgnored
               ? 'bg-brand-600 text-white border-brand-600'
               : 'border-[var(--color-border)] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
@@ -115,24 +118,22 @@
     <!-- Data loaded — show totals + views -->
     <template v-else>
       <!-- Totals bar -->
-      <div class="flex items-center gap-6 p-4 card">
-        <div>
-          <p class="text-xs text-gray-500 font-body uppercase tracking-wider">Income</p>
-          <p class="font-heading font-bold text-emerald-600 dark:text-emerald-400">
+      <div class="grid grid-cols-3 gap-2 md:gap-4 p-3 md:p-4 card">
+        <div class="text-center md:text-left">
+          <p class="text-[10px] md:text-xs text-gray-500 font-body uppercase tracking-wider">Income</p>
+          <p class="font-heading font-bold text-sm md:text-base text-emerald-600 dark:text-emerald-400">
             +{{ formatCurrency(totalIncome) }}
           </p>
         </div>
-        <div class="h-8 w-px bg-[var(--color-border)]" />
-        <div>
-          <p class="text-xs text-gray-500 font-body uppercase tracking-wider">Expenses</p>
-          <p class="font-heading font-bold text-red-500">
+        <div class="text-center border-x border-[var(--color-border)] md:border-0 md:border-l">
+          <p class="text-[10px] md:text-xs text-gray-500 font-body uppercase tracking-wider">Expenses</p>
+          <p class="font-heading font-bold text-sm md:text-base text-red-500">
             -{{ formatCurrency(totalExpenses) }}
           </p>
         </div>
-        <div class="h-8 w-px bg-[var(--color-border)]" />
-        <div>
-          <p class="text-xs text-gray-500 font-body uppercase tracking-wider">Net</p>
-          <p :class="['font-heading font-bold', net >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-500']">
+        <div class="text-center md:text-left">
+          <p class="text-[10px] md:text-xs text-gray-500 font-body uppercase tracking-wider">Net</p>
+          <p :class="['font-heading font-bold text-sm md:text-base', net >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-500']">
             {{ net >= 0 ? '+' : '' }}{{ formatCurrency(net) }}
           </p>
         </div>
@@ -159,19 +160,19 @@
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="flex items-center justify-center gap-2">
+        <div v-if="totalPages > 1" class="flex items-center justify-center gap-3">
           <button
-            class="btn-secondary px-3 py-1.5"
+            class="btn-secondary px-3 py-2 min-w-[44px] min-h-[44px]"
             :disabled="page === 1"
             @click="page--"
           >
             <ChevronLeft class="w-4 h-4" />
           </button>
           <span class="text-sm text-gray-500 font-body">
-            Page {{ page }} of {{ totalPages }}
+            {{ page }} / {{ totalPages }}
           </span>
           <button
-            class="btn-secondary px-3 py-1.5"
+            class="btn-secondary px-3 py-2 min-w-[44px] min-h-[44px]"
             :disabled="page === totalPages"
             @click="page++"
           >
