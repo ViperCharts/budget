@@ -48,14 +48,23 @@ export interface Transaction {
 
 export interface Category {
   id: string
+  /** Category label — plain text only, no emoji embedded */
   name: string
+  /** Hex color string, e.g. "#f59e0b" */
   color: string
+  /** Single emoji character representing the category, e.g. "🛒" */
   emoji?: string
-  icon?: string
   budgetLimit?: number
   parentId?: string
   /** True for user-created categories (synced to Firestore) */
   isCustom?: boolean
+  /**
+   * True for the built-in "Internal Transfer" category.
+   * Transactions in this category represent money moving between the user's
+   * own accounts (e.g. checking → savings, credit-card payment) and should
+   * be excluded from spending/budget calculations.
+   */
+  isInternalTransfer?: boolean
 }
 
 // ─── Budget Types ─────────────────────────────────────────────────────────────
