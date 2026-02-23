@@ -25,6 +25,10 @@ export interface Account {
   currency: string;
   lastUpdated: string; // ISO date
   fileIds: string[];
+  /** Set when account was imported via Plaid */
+  plaidAccountId?: string;
+  plaidItemId?: string;
+  source?: "manual" | "plaid";
 }
 
 // ─── Transaction Types ────────────────────────────────────────────────────────
@@ -44,6 +48,9 @@ export interface Transaction {
   pending?: boolean;
   /** When true, hidden from the UI and excluded from all budget/spending calculations */
   ignore?: boolean;
+  /** Set when transaction was imported via Plaid — used for deduplication on re-sync */
+  plaidTransactionId?: string;
+  source?: "manual" | "plaid";
 }
 
 // ─── Category Types ───────────────────────────────────────────────────────────
@@ -115,6 +122,32 @@ export interface ExtractedFileData {
   transactions: Partial<Transaction>[];
   interestRate?: number;
   creditLimit?: number;
+}
+
+// ─── Plaid Types ─────────────────────────────────────────────────────────────
+
+export type PlaidItemStatus = "active" | "error" | "pending";
+
+export interface PlaidItem {
+  id: string; // Plaid item_id
+  uid: string;
+  institutionId: string;
+  institutionName: string;
+  lastSync: string | null; // ISO timestamp
+  status: PlaidItemStatus;
+  error?: string;
+}
+
+export interface PlaidLinkedAccount {
+  plaidAccountId: string; // Plaid account_id
+  plaidItemId: string;
+  name: string;
+  officialName?: string;
+  subtype: string; // e.g. "checking", "savings", "credit card"
+  mask?: string; // last 4 digits
+  balanceCurrent?: number;
+  balanceAvailable?: number;
+  currency: string;
 }
 
 // ─── AI Types ────────────────────────────────────────────────────────────────
