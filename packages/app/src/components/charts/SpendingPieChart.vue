@@ -19,6 +19,7 @@
 import { defineComponent, type PropType } from 'vue'
 import { PieChart } from '@viper/viper.js'
 import { useCategoriesStore } from '@/stores/categories'
+import { useThemeStore } from '@/stores/theme'
 import { formatCurrency, formatPeriod } from '@/lib/currency'
 
 export default defineComponent({
@@ -37,7 +38,8 @@ export default defineComponent({
 
   setup() {
     const categoriesStore = useCategoriesStore()
-    return { categoriesStore }
+    const themeStore = useThemeStore()
+    return { categoriesStore, themeStore }
   },
 
   data() {
@@ -47,6 +49,13 @@ export default defineComponent({
   },
 
   computed: {
+    isDark(): boolean {
+      return (
+        this.themeStore.mode === 'dark' ||
+        (this.themeStore.mode === 'system' &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches)
+      )
+    },
     period(): string {
       return formatPeriod(this.activePeriod)
     },
@@ -76,6 +85,11 @@ export default defineComponent({
         this.pieChart.state.centerValue = formatCurrency(this.total)
       }
     },
+    isDark(dark: boolean) {
+      if (this.pieChart) {
+        this.pieChart.settings.darkMode = dark
+      }
+    },
   },
 
   mounted() {
@@ -103,6 +117,7 @@ export default defineComponent({
         settings: {
           innerRadiusRatio: 0.6,
           showLegend: true,
+          darkMode: this.isDark,
         },
       })
     },

@@ -6,6 +6,7 @@ declare const _default: import('vue').DefineComponent<{}, {
 }, {
     hoveredSlice: number | null;
 }, {
+    theme(): Record<string, string>;
     viewSize(): number;
     cx(): number;
     cy(): number;
