@@ -16,31 +16,18 @@
         </div>
       </div>
 
-      <!-- Provider -->
-      <div>
-        <label class="label">AI Provider</label>
-        <div class="flex gap-2">
-          <button
-            v-for="provider in ['anthropic', 'openai']"
-            :key="provider"
-            :class="[
-              'flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-heading font-medium transition-all',
-              aiStore.settings.provider === provider
-                ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400'
-                : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300',
-            ]"
-            @click="aiStore.updateSettings({ provider: provider as 'anthropic' | 'openai' })"
-          >
-            {{ provider === 'anthropic' ? '🧡 Anthropic' : '🤖 OpenAI' }}
-          </button>
+      <!-- Provider (locked to OpenAI GPT-4o) -->
+      <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+        <div>
+          <p class="text-sm font-heading font-medium text-gray-900 dark:text-white">Model</p>
+          <p class="text-xs text-gray-500 font-body">OpenAI GPT-4o</p>
         </div>
+        <span class="badge bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 font-heading">Active</span>
       </div>
 
       <!-- API Key -->
       <div>
-        <label class="label">
-          {{ aiStore.settings.provider === 'anthropic' ? 'Anthropic' : 'OpenAI' }} API Key
-        </label>
+        <label class="label">OpenAI API Key</label>
         <div class="relative">
           <input
             :value="aiStore.settings.apiKey"
@@ -59,24 +46,6 @@
         <p class="text-xs text-gray-400 mt-1.5 font-body">
           Your key is stored locally in your browser and never sent to our servers.
         </p>
-      </div>
-
-      <!-- Model -->
-      <div>
-        <label class="label">Model</label>
-        <select
-          :value="aiStore.settings.model"
-          class="input"
-          @change="aiStore.updateSettings({ model: ($event.target as HTMLSelectElement).value })"
-        >
-          <option
-            v-for="m in aiStore.modelOptions"
-            :key="m.value"
-            :value="m.value"
-          >
-            {{ m.label }}
-          </option>
-        </select>
       </div>
 
       <!-- Test connection -->

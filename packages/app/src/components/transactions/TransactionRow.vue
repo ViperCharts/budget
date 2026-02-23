@@ -39,11 +39,11 @@
       {{ transaction.type === 'credit' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
     </p>
 
-    <!-- Edit category (hover) -->
-    <div class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+    <!-- Edit category -->
+    <div class="shrink-0">
       <select
         :value="transaction.category"
-        class="text-xs border-0 bg-transparent text-gray-400 cursor-pointer focus:ring-1 focus:ring-brand-500 rounded"
+        class="text-xs border border-[var(--color-border)] bg-[var(--color-surface)] text-gray-700 dark:text-gray-200 cursor-pointer rounded px-1.5 py-1 focus:ring-1 focus:ring-brand-500 focus:outline-none"
         @change="updateCategory"
         title="Change category"
       >
@@ -58,7 +58,6 @@ import { defineComponent, type PropType } from 'vue'
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-vue-next'
 import CategoryBadge from '@/components/ui/CategoryBadge.vue'
 import { useTransactionsStore } from '@/stores/transactions'
-import { useCategoriesStore } from '@/stores/categories'
 import { formatCurrency, formatDate } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
@@ -72,9 +71,14 @@ export default defineComponent({
     },
   },
 
+  setup() {
+    const transactionsStore = useTransactionsStore()
+    return { transactionsStore }
+  },
+
   computed: {
     categories(): string[] {
-      return useCategoriesStore().names
+      return this.transactionsStore.categories
     },
   },
 
@@ -83,7 +87,7 @@ export default defineComponent({
     formatDate,
     async updateCategory(e: Event) {
       const cat = (e.target as HTMLSelectElement).value
-      await useTransactionsStore().updateCategory(this.transaction.id, cat)
+      await this.transactionsStore.updateCategory(this.transaction.id, cat)
     },
   },
 })

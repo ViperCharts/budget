@@ -3,7 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import type { AISettings, ExtractedFileData, AccountType } from "@/types";
-import { readFileAsBase64, readFileAsText } from "@/lib/csv";
+import { readFileAsBase64 } from "@/lib/csv";
 
 function getModel(settings: AISettings) {
   if (settings.provider === "anthropic") {
@@ -14,20 +14,6 @@ function getModel(settings: AISettings) {
     return openai(settings.model || "gpt-4o-mini");
   }
 }
-
-const CATEGORIES = [
-  "Food & Dining",
-  "Transportation",
-  "Housing & Utilities",
-  "Entertainment",
-  "Healthcare",
-  "Shopping",
-  "Income",
-  "Transfer",
-  "Savings",
-  "Fees & Interest",
-  "Other",
-] as const;
 
 const TransactionSchema = z.object({
   date: z.string().describe("Transaction date normalized to YYYY-MM-DD"),
@@ -42,7 +28,9 @@ const TransactionSchema = z.object({
     .describe(
       "debit = money out (purchases, withdrawals, fees); credit = money in (deposits, payments, refunds)"
     ),
-  category: z.enum(CATEGORIES),
+  category: z
+    .string()
+    .describe("Pick the single best matching category from the provided list"),
 });
 
 const ExtractedSchema = z.object({
@@ -92,7 +80,17 @@ Rules:
 - Interest rate should be a number like 23.99 (not 0.2399) representing the APR percentage
 - If a field is not present in the document, omit it entirely — do not guess or make up values
 Categories (pick the single best match):
-Food & Dining, Transportation, Housing & Utilities, Entertainment, Healthcare, Shopping, Income, Transfer, Savings, Fees & Interest, Other`;
+Food: Groceries, Restaurants & Bars, Coffee & Tea, Fast Food, Food Delivery
+Transportation: Gas & Fuel, Public Transit, Rideshare & Taxi, Parking & Tolls, Car Maintenance, Car Insurance
+Travel: Flights, Hotels & Lodging, Car Rental, Travel & Vacation
+Housing: Rent & Mortgage, Home Utilities, Internet & Phone, Home Maintenance, Home Improvement
+Shopping: Clothing & Apparel, Electronics & Tech, Online Shopping, Home & Garden, Gifts
+Entertainment: Streaming Services, Movies & Events, Gaming, Sports & Recreation, Books & Magazines, Hobbies
+Healthcare: Doctor & Medical, Dental & Vision, Pharmacy, Fitness & Gym, Mental Health
+Personal Care: Hair & Beauty, Personal Care
+Education: Tuition & Fees, Books & Supplies, Courses & Training, Childcare
+Finance: Income, Investment Income, Freelance Income, Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
+Other: Pets, Charity & Donations, Business Expenses, Other`;
 
 function mapExtractedObject(
   object: z.infer<typeof ExtractedSchema>
@@ -137,45 +135,41 @@ export async function extractFromText(
 
 /**
  * Extract financial data from a PDF file.
- * When using Anthropic, sends the PDF natively for accurate extraction.
- * Falls back to text extraction for OpenAI (limited accuracy).
+ * Sends the PDF natively (base64) for both Anthropic and OpenAI.
  */
 export async function extractFromPDF(
   file: File,
   settings: AISettings
 ): Promise<ExtractedFileData> {
   const model = getModel(settings);
+  const base64 = await readFileAsBase64(file);
 
-  if (settings.provider === "anthropic") {
-    const base64 = await readFileAsBase64(file);
+  const { object } = await generateObject({
+    model,
+    schema: ExtractedSchema,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "file", data: base64, mimeType: "application/pdf" },
+          { type: "text", text: EXTRACTION_PROMPT },
+        ],
+      },
+    ],
+  });
 
-    const { object } = await generateObject({
-      model,
-      schema: ExtractedSchema,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "file", data: base64, mimeType: "application/pdf" },
-            { type: "text", text: EXTRACTION_PROMPT },
-          ],
-        },
-      ],
-    });
-
-    return mapExtractedObject(object);
-  }
-
-  // OpenAI fallback: read as text (PDFs are binary so quality will be limited)
-  const rawText = await readFileAsText(file);
-  return extractFromText(rawText, settings);
+  return mapExtractedObject(object);
 }
 
 const CategorizationSchema = z.object({
   categories: z.array(
     z.object({
       description: z.string(),
-      category: z.enum(CATEGORIES),
+      category: z
+        .string()
+        .describe(
+          "Pick the single best matching category from the provided list"
+        ),
     })
   ),
 });
@@ -189,8 +183,18 @@ export async function categorizeTransactions(
   const { object } = await generateObject({
     model,
     schema: CategorizationSchema,
-    prompt: `Categorize each transaction description into one of:
-${CATEGORIES.join(", ")}
+    prompt: `Categorize each transaction description into the single best matching category from this list:
+Food: Groceries, Restaurants & Bars, Coffee & Tea, Fast Food, Food Delivery
+Transportation: Gas & Fuel, Public Transit, Rideshare & Taxi, Parking & Tolls, Car Maintenance, Car Insurance
+Travel: Flights, Hotels & Lodging, Car Rental, Travel & Vacation
+Housing: Rent & Mortgage, Home Utilities, Internet & Phone, Home Maintenance, Home Improvement
+Shopping: Clothing & Apparel, Electronics & Tech, Online Shopping, Home & Garden, Gifts
+Entertainment: Streaming Services, Movies & Events, Gaming, Sports & Recreation, Books & Magazines, Hobbies
+Healthcare: Doctor & Medical, Dental & Vision, Pharmacy, Fitness & Gym, Mental Health
+Personal Care: Hair & Beauty, Personal Care
+Education: Tuition & Fees, Books & Supplies, Courses & Training, Childcare
+Finance: Income, Investment Income, Freelance Income, Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
+Other: Pets, Charity & Donations, Business Expenses, Other
 
 Descriptions:
 ${descriptions.map((d, i) => `${i + 1}. ${d}`).join("\n")}`,

@@ -3,13 +3,13 @@
     class="badge font-heading"
     :style="{ backgroundColor: color + '22', color }"
   >
-    {{ name }}
+    {{ category }}
   </span>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { useCategoriesStore } from '@/stores/categories'
+import { hashColor } from '@/stores/categories'
 
 export default defineComponent({
   name: 'CategoryBadge',
@@ -22,10 +22,7 @@ export default defineComponent({
 
   computed: {
     color(): string {
-      return useCategoriesStore().colorFor(this.category)
-    },
-    name(): string {
-      return this.category
+      return hashColor(this.category)
     },
   },
 })

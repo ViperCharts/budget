@@ -130,7 +130,6 @@ import TransactionRow from '@/components/transactions/TransactionRow.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useTransactionsStore } from '@/stores/transactions'
-import { useCategoriesStore } from '@/stores/categories'
 import { formatCurrency, formatPeriod, dateToPeriod } from '@/lib/currency'
 import type { Transaction } from '@/types'
 
@@ -139,6 +138,11 @@ const PAGE_SIZE = 50
 export default defineComponent({
   name: 'TransactionsView',
   components: { RouterLink, TransactionRow, LoadingSpinner, EmptyState, Search, ArrowLeftRight, Upload, ChevronLeft, ChevronRight },
+
+  setup() {
+    const txStore = useTransactionsStore()
+    return { txStore }
+  },
 
   data() {
     return {
@@ -153,11 +157,8 @@ export default defineComponent({
   },
 
   computed: {
-    txStore() {
-      return useTransactionsStore()
-    },
     categories(): string[] {
-      return useCategoriesStore().names
+      return this.txStore.categories
     },
     availablePeriods(): string[] {
       return Object.keys(this.txStore.byPeriod).sort().reverse()
