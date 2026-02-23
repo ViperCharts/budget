@@ -59,7 +59,7 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'income', name: 'Income', color: '#22c55e', emoji: '💰' },
   { id: 'investment-income', name: 'Investment Income', color: '#16a34a', emoji: '📈' },
   { id: 'freelance', name: 'Freelance Income', color: '#4ade80', emoji: '💼' },
-  { id: 'transfer', name: 'Transfer', color: '#6b7280', emoji: '🔄' },
+  { id: 'internal-transfer', name: 'Internal Transfer', color: '#6b7280', emoji: '🔄', isInternalTransfer: true },
   { id: 'savings', name: 'Savings & Investments', color: '#10b981', emoji: '🏦' },
   { id: 'atm', name: 'ATM & Cash', color: '#9ca3af', emoji: '💵' },
   { id: 'fees', name: 'Fees & Interest', color: '#f97316', emoji: '📋' },

@@ -108,8 +108,9 @@ Entertainment: Streaming Services, Movies & Events, Gaming, Sports & Recreation,
 Healthcare: Doctor & Medical, Dental & Vision, Pharmacy, Fitness & Gym, Mental Health
 Personal Care: Hair & Beauty, Personal Care
 Education: Tuition & Fees, Books & Supplies, Courses & Training, Childcare
-Finance: Income, Investment Income, Freelance Income, Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
-Other: Pets, Charity & Donations, Business Expenses, Other`;
+Finance: Income, Investment Income, Freelance Income, Internal Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
+Other: Pets, Charity & Donations, Business Expenses, Other
+IMPORTANT — Internal Transfer rule: Use "Internal Transfer" for ANY transaction that moves money between the user's own accounts. This includes: transfers between checking/savings accounts, credit card payments (e.g. "AUTOPAY", "ONLINE PAYMENT", "PAYMENT - THANK YOU"), balance transfers, loan payments made from a checking account to a loan account held at the same or different institution. Do NOT use "Internal Transfer" for payments to external parties.`;
 
 function mapExtractedObject(
   object: z.infer<typeof ExtractedSchema>
@@ -213,8 +214,9 @@ Entertainment: Streaming Services, Movies & Events, Gaming, Sports & Recreation,
 Healthcare: Doctor & Medical, Dental & Vision, Pharmacy, Fitness & Gym, Mental Health
 Personal Care: Hair & Beauty, Personal Care
 Education: Tuition & Fees, Books & Supplies, Courses & Training, Childcare
-Finance: Income, Investment Income, Freelance Income, Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
+Finance: Income, Investment Income, Freelance Income, Internal Transfer, Savings & Investments, ATM & Cash, Fees & Interest, Taxes, Insurance
 Other: Pets, Charity & Donations, Business Expenses, Other
+IMPORTANT — Internal Transfer rule: Use "Internal Transfer" for ANY transaction that moves money between the user's own accounts. This includes: transfers between checking/savings accounts, credit card payments (e.g. "AUTOPAY", "ONLINE PAYMENT", "PAYMENT - THANK YOU"), balance transfers, loan payments made from a checking account to a loan account held at the same or different institution. Do NOT use "Internal Transfer" for payments to external parties.
 
 Descriptions:
 ${descriptions.map((d, i) => `${i + 1}. ${d}`).join("\n")}`,
