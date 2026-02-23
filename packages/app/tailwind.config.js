@@ -6,7 +6,7 @@ export default {
     extend: {
       fontFamily: {
         heading: ['Montserrat', 'sans-serif'],
-        body: ['Merriweather', 'serif'],
+        body: ['Roboto', 'sans-serif'],
       },
       colors: {
         brand: {
