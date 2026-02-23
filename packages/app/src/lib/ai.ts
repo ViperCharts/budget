@@ -53,6 +53,10 @@ const ExtractedSchema = z.object({
     .string()
     .optional()
     .describe('Last 4 digits only, e.g. "4242"'),
+  holderName: z
+    .string()
+    .optional()
+    .describe('Full name of the account holder as it appears on the statement, e.g. "John Smith"'),
   statementDate: z
     .string()
     .optional()
@@ -78,6 +82,7 @@ Rules:
 - Only extract rows that have a specific date, a specific merchant/description, and a specific dollar amount — these are the actual transactions
 - For accountType: use "credit_card" for credit card statements, "checking" for checking/debit, "savings" for savings accounts
 - Interest rate should be a number like 23.99 (not 0.2399) representing the APR percentage
+- Extract the account holder's name exactly as it appears on the statement (holderName)
 - If a field is not present in the document, omit it entirely — do not guess or make up values
 Categories (pick the single best match):
 Food: Groceries, Restaurants & Bars, Coffee & Tea, Fast Food, Food Delivery
@@ -99,6 +104,7 @@ function mapExtractedObject(
     accountName: object.accountName,
     accountType: object.accountType as AccountType | undefined,
     accountNumber: object.accountNumber,
+    holderName: object.holderName,
     statementDate: object.statementDate,
     openingBalance: object.openingBalance,
     closingBalance: object.closingBalance,

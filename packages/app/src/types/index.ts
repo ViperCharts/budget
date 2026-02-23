@@ -14,6 +14,10 @@ export interface Account {
   name: string
   type: AccountType
   balance: number
+  /** Last 4 digits of account number, used for deduplication */
+  accountNumber?: string
+  /** Name of the account holder */
+  holderName?: string
   /** For credit cards */
   interestRate?: number
   /** Credit limit for credit cards */
@@ -89,6 +93,8 @@ export interface ExtractedFileData {
   accountName?: string
   accountType?: AccountType
   accountNumber?: string
+  /** Account holder's full name */
+  holderName?: string
   statementDate?: string
   openingBalance?: number
   closingBalance?: number
