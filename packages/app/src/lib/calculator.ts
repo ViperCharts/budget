@@ -28,14 +28,22 @@ export interface TransactionFilters {
    * Defaults to false.
    */
   showIgnored?: boolean
+  /**
+   * When true (default), transactions whose category is marked `isInternalTransfer`
+   * are removed from the result. Set to false in the transaction list view where
+   * internal transfers should be visible.
+   *
+   * Defaults to true.
+   */
+  excludeInternalTransfers?: boolean
 }
 
 /**
- * Filter a list of transactions for display in the UI.
+ * Filter a list of transactions.
  *
- * Rules always applied:
- * - Internal-transfer categories are always excluded.
- * - Ignored transactions are excluded unless `showIgnored` is true.
+ * By default:
+ * - Internal-transfer categories are excluded (set `excludeInternalTransfers: false` to show them).
+ * - Ignored transactions are excluded (set `showIgnored: true` to show them).
  *
  * Optional filters: period, search text, account, category, type.
  */
@@ -44,12 +52,20 @@ export function filterTransactions(
   categories: CategoryMap,
   filters: TransactionFilters = {},
 ): Transaction[] {
-  const { period, search, accountId, category, type, showIgnored = false } = filters
+  const {
+    period,
+    search,
+    accountId,
+    category,
+    type,
+    showIgnored = false,
+    excludeInternalTransfers = true,
+  } = filters
   const s = search?.toLowerCase() ?? ''
 
   return transactions.filter((t) => {
     const cat = categories[t.category.toLowerCase()]
-    if (cat?.isInternalTransfer) return false
+    if (excludeInternalTransfers && cat?.isInternalTransfer) return false
     if (t.ignore && !showIgnored) return false
     if (s && !t.description.toLowerCase().includes(s) && !t.category.toLowerCase().includes(s))
       return false

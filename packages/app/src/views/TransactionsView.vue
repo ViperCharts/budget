@@ -317,6 +317,7 @@ export default defineComponent({
         category: this.categoryFilter,
         type: this.typeFilter as 'debit' | 'credit' | undefined,
         showIgnored: this.showIgnored,
+        excludeInternalTransfers: false,
       })
     },
 

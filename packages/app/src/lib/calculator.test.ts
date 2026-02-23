@@ -79,6 +79,21 @@ describe('filterTransactions', () => {
       const result = filterTransactions(txs, defaultCats)
       expect(result).toHaveLength(1)
     })
+
+    it('includes internal transfers when excludeInternalTransfers=false', () => {
+      const txs = [
+        makeTx({ amount: 500, type: 'debit', category: 'Internal Transfer' }),
+        makeTx({ amount: 100, type: 'debit', category: 'Food' }),
+      ]
+      const result = filterTransactions(txs, defaultCats, { excludeInternalTransfers: false })
+      expect(result).toHaveLength(2)
+    })
+
+    it('still excludes internal transfers by default (excludeInternalTransfers defaults to true)', () => {
+      const txs = [makeTx({ amount: 500, type: 'debit', category: 'Internal Transfer' })]
+      expect(filterTransactions(txs, defaultCats)).toHaveLength(0)
+      expect(filterTransactions(txs, defaultCats, {})).toHaveLength(0)
+    })
   })
 
   describe('ignored transactions', () => {
