@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import * as functions from 'firebase-functions'
 import {
   Configuration,
@@ -305,7 +306,7 @@ async function _syncPlaidItemData(
     await db.collection('plaidItems').doc(itemId).update({
       status: 'active',
       lastSync: new Date().toISOString(),
-      error: admin.firestore.FieldValue.delete(),
+      error: FieldValue.delete(),
     })
   } catch (err) {
     functions.logger.error(`Plaid sync failed for item ${itemId}:`, err)
