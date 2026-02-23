@@ -15,6 +15,11 @@ import { useAuthStore } from './auth'
 import { useMonthStore } from './month'
 import { useCategoriesStore } from './categories'
 import { dateToPeriod } from '@/lib/currency'
+import {
+  filterTransactions,
+  calculateCategorySpending,
+  sumCategorySpending,
+} from '@/lib/calculator'
 import type { Transaction, MonthlySpending } from '@/types'
 
 export const useTransactionsStore = defineStore('transactions', {
@@ -46,21 +51,9 @@ export const useTransactionsStore = defineStore('transactions', {
       const catStore = useCategoriesStore()
       const periods = Object.keys(this.byPeriod).sort()
       return periods.map((period) => {
-        const periodTxs = this.byPeriod[period].filter((t) => {
-          if (t.ignore) return false
-          const cat = catStore.byName[t.category.toLowerCase()]
-          return !cat?.isInternalTransfer
-        })
-        const byCategory: Record<string, number> = {}
-        for (const tx of periodTxs) {
-          const delta = tx.type === 'debit' ? tx.amount : -tx.amount
-          byCategory[tx.category] = (byCategory[tx.category] ?? 0) + delta
-        }
-        // Drop categories where refunds exceed spending (net <= 0)
-        for (const cat of Object.keys(byCategory)) {
-          if (byCategory[cat] <= 0) delete byCategory[cat]
-        }
-        const total = Object.values(byCategory).reduce((s, v) => s + v, 0)
+        const periodTxs = filterTransactions(this.byPeriod[period], catStore.byName, { period })
+        const byCategory = calculateCategorySpending(periodTxs)
+        const total = sumCategorySpending(byCategory)
         return { period, total, byCategory }
       })
     },
@@ -68,13 +61,7 @@ export const useTransactionsStore = defineStore('transactions', {
     categories(): string[] {
       const catStore = useCategoriesStore()
       const cats = new Set(
-        this.transactions
-          .filter((t) => {
-            if (t.ignore) return false
-            const cat = catStore.byName[t.category.toLowerCase()]
-            return !cat?.isInternalTransfer
-          })
-          .map((t) => t.category),
+        filterTransactions(this.transactions, catStore.byName).map((t) => t.category),
       )
       return [...cats].sort()
     },
