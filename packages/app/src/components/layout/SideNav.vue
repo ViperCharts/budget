@@ -52,6 +52,7 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
+  Building2,
 } from 'lucide-vue-next'
 import NavItem from './NavItem.vue'
 
@@ -64,7 +65,7 @@ export interface NavItemDef {
 
 export default defineComponent({
   name: 'SideNav',
-  components: { NavItem, TrendingUp, ChevronLeft, ChevronRight },
+  components: { NavItem, TrendingUp, ChevronLeft, ChevronRight, Building2 },
   emits: ['toggle'],
 
   props: {
@@ -81,6 +82,7 @@ export default defineComponent({
         { name: 'files', label: 'Files', icon: FolderOpen, to: '/files' },
         { name: 'transactions', label: 'Transactions', icon: ArrowLeftRight, to: '/transactions' },
         { name: 'budget', label: 'Budget', icon: Target, to: '/budget' },
+        { name: 'banks', label: 'Banks', icon: Building2, to: '/banks' },
         { name: 'settings', label: 'Settings', icon: Settings, to: '/settings' },
       ] as NavItemDef[],
     }
