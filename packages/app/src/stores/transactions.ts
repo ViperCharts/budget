@@ -59,6 +59,16 @@ export const useTransactionsStore = defineStore('transactions', {
       return [...cats].sort()
     },
 
+    lastTransactionDateByAccount(): Record<string, string> {
+      const map: Record<string, string> = {}
+      for (const t of this.transactions) {
+        if (!map[t.accountId] || t.date > map[t.accountId]) {
+          map[t.accountId] = t.date
+        }
+      }
+      return map
+    },
+
     totalSpentThisMonth(): number {
       const now = new Date()
       const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`

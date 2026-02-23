@@ -41,7 +41,7 @@
     </div>
 
     <p class="text-xs text-gray-400 mt-3 font-body">
-      Updated {{ lastUpdated }}
+      Last transaction {{ lastUpdated }}
     </p>
   </div>
 </template>
@@ -58,6 +58,7 @@ import {
 } from 'lucide-vue-next'
 import type { Account } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/currency'
+import { useTransactionsStore } from '@/stores/transactions'
 
 export default defineComponent({
   name: 'AccountCard',
@@ -66,6 +67,11 @@ export default defineComponent({
       type: Object as PropType<Account>,
       required: true,
     },
+  },
+
+  setup() {
+    const transactionsStore = useTransactionsStore()
+    return { transactionsStore }
   },
 
   computed: {
@@ -133,7 +139,8 @@ export default defineComponent({
       return 'bg-brand-500'
     },
     lastUpdated(): string {
-      return formatDate(this.account.lastUpdated)
+      const lastTx = this.transactionsStore.lastTransactionDateByAccount[this.account.id]
+      return formatDate(lastTx ?? this.account.lastUpdated)
     },
   },
 })
