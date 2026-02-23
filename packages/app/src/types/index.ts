@@ -73,9 +73,8 @@ export interface Category {
 export interface BudgetItem {
   id: string;
   categoryId: string;
+  /** Monthly spending limit — global across all months */
   monthlyLimit: number;
-  /** Year-Month: "2024-01" */
-  period: string;
 }
 
 // ─── File Types ───────────────────────────────────────────────────────────────
