@@ -50,23 +50,46 @@
         </div>
 
         <!-- Account filter -->
-        <select v-model="accountFilter" class="input w-44">
-          <option value="">All accounts</option>
-          <option v-for="a in accounts" :key="a.id" :value="a.id">{{ formatAccountName(a) }}</option>
-        </select>
+        <SelectMenu
+          :options="accountOptions"
+          :model-value="accountFilter"
+          placeholder="All accounts"
+          class="w-44"
+          @selected="accountFilter = $event"
+        />
 
         <!-- Category filter -->
-        <select v-model="categoryFilter" class="input w-44">
-          <option value="">All categories</option>
-          <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-        </select>
+        <SelectMenu
+          :options="categoryOptions"
+          :model-value="categoryFilter"
+          placeholder="All categories"
+          class="w-44"
+          @selected="categoryFilter = $event"
+        />
 
         <!-- Type filter -->
-        <select v-model="typeFilter" class="input w-36">
-          <option value="">All types</option>
-          <option value="debit">Expenses</option>
-          <option value="credit">Income</option>
-        </select>
+        <SelectMenu
+          :options="typeOptions"
+          :model-value="typeFilter"
+          placeholder="All types"
+          class="w-36"
+          @selected="typeFilter = $event"
+        />
+
+        <!-- Show ignored toggle -->
+        <button
+          :class="[
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-body border transition-colors',
+            showIgnored
+              ? 'bg-brand-600 text-white border-brand-600'
+              : 'border-[var(--color-border)] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+          ]"
+          :title="showIgnored ? 'Hide ignored transactions' : 'Show ignored transactions'"
+          @click="showIgnored = !showIgnored"
+        >
+          <EyeOff class="w-3.5 h-3.5" />
+          Ignored
+        </button>
       </div>
     </div>
 
@@ -185,12 +208,15 @@ import {
   ChevronRight,
   List,
   CalendarDays,
+  EyeOff,
 } from 'lucide-vue-next'
 import TransactionRow from '@/components/transactions/TransactionRow.vue'
 import TransactionCalendar from '@/components/transactions/TransactionCalendar.vue'
 import TransactionDetailModal from '@/components/transactions/TransactionDetailModal.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import SelectMenu from '@/components/ui/Select.vue'
+import type { SelectOption } from '@/components/ui/Select.vue'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useAccountsStore } from '@/stores/accounts'
 import { useMonthStore } from '@/stores/month'
@@ -210,6 +236,7 @@ export default defineComponent({
     TransactionDetailModal,
     LoadingSpinner,
     EmptyState,
+    SelectMenu,
     Search,
     ArrowLeftRight,
     Upload,
@@ -217,6 +244,7 @@ export default defineComponent({
     ChevronRight,
     List,
     CalendarDays,
+    EyeOff,
   },
 
   setup() {
@@ -236,6 +264,7 @@ export default defineComponent({
       accountFilter: '',
       categoryFilter: '',
       typeFilter: '',
+      showIgnored: false,
       page: 1,
       showDetailModal: false,
       selectedTransaction: null as Transaction | null,
@@ -246,15 +275,47 @@ export default defineComponent({
     accounts() {
       return this.accountsStore.accounts
     },
-    categories(): string[] {
-      return this.txStore.categories
+
+    accountOptions(): Record<string, SelectOption> {
+      const opts: Record<string, SelectOption> = {
+        '': { text: 'All accounts' },
+      }
+      for (const a of this.accountsStore.accounts) {
+        opts[a.id] = { text: formatAccountName(a) }
+      }
+      return opts
     },
+
+    categoryOptions(): Record<string, SelectOption> {
+      const opts: Record<string, SelectOption> = {
+        '': { text: 'All categories' },
+      }
+      for (const cat of this.txStore.categories) {
+        const catData = this.catStore.byName[cat.toLowerCase()]
+        opts[cat] = {
+          text: catData?.emoji ? `${catData.emoji} ${cat}` : cat,
+          color: catData?.color,
+        }
+      }
+      return opts
+    },
+
+    typeOptions(): Record<string, SelectOption> {
+      return {
+        '': { text: 'All types' },
+        debit: { text: 'Expenses' },
+        credit: { text: 'Income' },
+      }
+    },
+
     filtered(): Transaction[] {
       const s = this.search.toLowerCase()
       const activePeriod = this.monthStore.activePeriod
       return this.txStore.sorted.filter((t) => {
         const cat = this.catStore.byName[t.category.toLowerCase()]
         if (cat?.isInternalTransfer) return false
+        // Hide ignored unless toggle is on
+        if (t.ignore && !this.showIgnored) return false
         if (
           s &&
           !t.description.toLowerCase().includes(s) &&
@@ -268,23 +329,28 @@ export default defineComponent({
         return true
       })
     },
+
     paginated(): Transaction[] {
       const start = (this.page - 1) * PAGE_SIZE
       return this.filtered.slice(start, start + PAGE_SIZE)
     },
+
     totalPages(): number {
       return Math.max(1, Math.ceil(this.filtered.length / PAGE_SIZE))
     },
+
     totalIncome(): number {
       return this.filtered
-        .filter((t) => t.type === 'credit')
+        .filter((t) => t.type === 'credit' && !t.ignore)
         .reduce((s, t) => s + t.amount, 0)
     },
+
     totalExpenses(): number {
       return this.filtered
-        .filter((t) => t.type === 'debit')
+        .filter((t) => t.type === 'debit' && !t.ignore)
         .reduce((s, t) => s + t.amount, 0)
     },
+
     net(): number {
       return this.totalIncome - this.totalExpenses
     },
@@ -295,6 +361,7 @@ export default defineComponent({
     accountFilter() { this.page = 1 },
     categoryFilter() { this.page = 1 },
     typeFilter() { this.page = 1 },
+    showIgnored() { this.page = 1 },
     'monthStore.activePeriod'() { this.page = 1 },
   },
 

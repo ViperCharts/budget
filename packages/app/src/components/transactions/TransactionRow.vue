@@ -1,16 +1,26 @@
 <template>
-  <div class="flex items-center gap-4 py-3 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors group">
+  <div
+    class="flex items-center gap-4 py-3 px-4 transition-colors group"
+    :class="[
+      transaction.ignore
+        ? 'opacity-50 bg-gray-50 dark:bg-gray-800/20'
+        : 'hover:bg-gray-50 dark:hover:bg-gray-800/40',
+    ]"
+  >
     <!-- Type indicator -->
     <div
       :class="[
         'w-9 h-9 rounded-full flex items-center justify-center shrink-0',
-        transaction.type === 'credit'
-          ? 'bg-emerald-50 dark:bg-emerald-900/20'
-          : 'bg-red-50 dark:bg-red-900/20',
+        transaction.ignore
+          ? 'bg-gray-100 dark:bg-gray-800'
+          : transaction.type === 'credit'
+            ? 'bg-emerald-50 dark:bg-emerald-900/20'
+            : 'bg-red-50 dark:bg-red-900/20',
       ]"
     >
+      <EyeOff v-if="transaction.ignore" class="w-4 h-4 text-gray-400" />
       <ArrowDownLeft
-        v-if="transaction.type === 'credit'"
+        v-else-if="transaction.type === 'credit'"
         class="w-4 h-4 text-emerald-600"
       />
       <ArrowUpRight v-else class="w-4 h-4 text-red-500" />
@@ -22,7 +32,13 @@
         {{ transaction.description }}
       </p>
       <div class="flex items-center gap-2 mt-0.5">
-        <CategoryBadge :category="transaction.category" />
+        <span
+          v-if="transaction.ignore"
+          class="badge text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800"
+        >
+          Ignored
+        </span>
+        <CategoryBadge v-else :category="transaction.category" />
         <span class="text-xs text-gray-400 font-body">{{ formatDate(transaction.date) }}</span>
         <span
           v-if="accountName"
@@ -37,29 +53,25 @@
     <p
       :class="[
         'font-heading font-semibold text-sm shrink-0',
-        transaction.type === 'credit'
-          ? 'text-emerald-600 dark:text-emerald-400'
-          : 'text-gray-900 dark:text-white',
+        transaction.ignore
+          ? 'text-gray-400'
+          : transaction.type === 'credit'
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : 'text-gray-900 dark:text-white',
       ]"
     >
       {{ transaction.type === 'credit' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
     </p>
 
     <!-- Category selector -->
-    <div class="shrink-0">
-      <select
-        :value="transaction.category"
-        class="text-xs border border-[var(--color-border)] bg-[var(--color-surface)] text-gray-700 dark:text-gray-200 cursor-pointer rounded px-1.5 py-1 focus:ring-1 focus:ring-brand-500 focus:outline-none max-w-[160px]"
-        title="Change category"
-        @change="onSelectChange"
-      >
-        <optgroup label="Categories">
-          <option v-for="cat in allCategoryNames" :key="cat" :value="cat">{{ categoryLabel(cat) }}</option>
-        </optgroup>
-        <optgroup label="Custom">
-          <option value="__custom__">+ Add custom category…</option>
-        </optgroup>
-      </select>
+    <div class="shrink-0 w-44">
+      <SelectMenu
+        :options="categoryOptions"
+        :model-value="transaction.ignore ? '__ignore__' : transaction.category"
+        placeholder="Set category…"
+        search-placeholder="Search categories…"
+        @selected="onCategorySelected"
+      />
     </div>
 
     <!-- Custom category modal -->
@@ -72,9 +84,11 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import { ArrowUpRight, ArrowDownLeft } from 'lucide-vue-next'
+import { ArrowUpRight, ArrowDownLeft, EyeOff } from 'lucide-vue-next'
 import CategoryBadge from '@/components/ui/CategoryBadge.vue'
 import CustomCategoryModal from '@/components/ui/CustomCategoryModal.vue'
+import SelectMenu from '@/components/ui/Select.vue'
+import type { SelectOption } from '@/components/ui/Select.vue'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useCategoriesStore } from '@/stores/categories'
 import { useAccountsStore } from '@/stores/accounts'
@@ -82,9 +96,12 @@ import { formatCurrency, formatDate } from '@/lib/currency'
 import { formatAccountName } from '@/lib/account'
 import type { Transaction, Category } from '@/types'
 
+const IGNORE_ID = '__ignore__'
+const ADD_CATEGORY_ID = '__add_category__'
+
 export default defineComponent({
   name: 'TransactionRow',
-  components: { ArrowUpRight, ArrowDownLeft, CategoryBadge, CustomCategoryModal },
+  components: { ArrowUpRight, ArrowDownLeft, EyeOff, CategoryBadge, CustomCategoryModal, SelectMenu },
   props: {
     transaction: {
       type: Object as PropType<Transaction>,
@@ -106,12 +123,32 @@ export default defineComponent({
   },
 
   computed: {
-    allCategoryNames(): string[] {
-      return this.categoriesStore.names
-    },
     accountName(): string {
       const account = this.accountsStore.byId[this.transaction.accountId]
       return account ? formatAccountName(account) : ''
+    },
+
+    categoryOptions(): Record<string, SelectOption> {
+      const opts: Record<string, SelectOption> = {}
+
+      // All categories with colors
+      for (const cat of this.categoriesStore.categories) {
+        opts[cat.name] = {
+          text: cat.emoji ? `${cat.emoji} ${cat.name}` : cat.name,
+          color: cat.color,
+        }
+      }
+
+      // Divider before special actions
+      opts['__divider_1__'] = { text: '', divider: true }
+
+      // Ignore option
+      opts[IGNORE_ID] = { text: '🚫 Ignore this transaction' }
+
+      // Add category option
+      opts[ADD_CATEGORY_ID] = { text: '+ Add custom category…' }
+
+      return opts
     },
   },
 
@@ -119,26 +156,29 @@ export default defineComponent({
     formatCurrency,
     formatDate,
 
-    categoryLabel(name: string): string {
-      const emoji = this.categoriesStore.emojiFor(name)
-      return emoji ? `${emoji} ${name}` : name
-    },
-
-    onSelectChange(e: Event) {
-      const select = e.target as HTMLSelectElement
-      const val = select.value
-
-      if (val === '__custom__') {
-        // Reset the select to current transaction category so it doesn't display __custom__
-        select.value = this.transaction.category
+    onCategorySelected(id: string) {
+      if (id === IGNORE_ID) {
+        this.transactionsStore.setIgnore(this.transaction.id, true)
+      } else if (id === ADD_CATEGORY_ID) {
         this.showCustomModal = true
       } else {
-        this.transactionsStore.updateCategory(this.transaction.id, val)
+        // Un-ignore if the transaction was previously ignored
+        if (this.transaction.ignore) {
+          this.transactionsStore.updateTransaction(this.transaction.id, {
+            category: id,
+            ignore: false,
+          })
+        } else {
+          this.transactionsStore.updateCategory(this.transaction.id, id)
+        }
       }
     },
 
     onCategoryCreated(cat: Category) {
-      this.transactionsStore.updateCategory(this.transaction.id, cat.name)
+      this.transactionsStore.updateTransaction(this.transaction.id, {
+        category: cat.name,
+        ignore: false,
+      })
     },
   },
 })

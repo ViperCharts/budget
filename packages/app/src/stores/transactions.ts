@@ -47,6 +47,7 @@ export const useTransactionsStore = defineStore('transactions', {
       const periods = Object.keys(this.byPeriod).sort()
       return periods.map((period) => {
         const periodTxs = this.byPeriod[period].filter((t) => {
+          if (t.ignore) return false
           const cat = catStore.byName[t.category.toLowerCase()]
           return !cat?.isInternalTransfer
         })
@@ -69,6 +70,7 @@ export const useTransactionsStore = defineStore('transactions', {
       const cats = new Set(
         this.transactions
           .filter((t) => {
+            if (t.ignore) return false
             const cat = catStore.byName[t.category.toLowerCase()]
             return !cat?.isInternalTransfer
           })
@@ -161,6 +163,10 @@ export const useTransactionsStore = defineStore('transactions', {
 
     async updateCategory(id: string, category: string) {
       await this.updateTransaction(id, { category })
+    },
+
+    async setIgnore(id: string, ignore: boolean) {
+      await this.updateTransaction(id, { ignore })
     },
   },
 })

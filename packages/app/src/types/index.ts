@@ -42,6 +42,8 @@ export interface Transaction {
   category: string;
   notes?: string;
   pending?: boolean;
+  /** When true, hidden from the UI and excluded from all budget/spending calculations */
+  ignore?: boolean;
 }
 
 // ─── Category Types ───────────────────────────────────────────────────────────
