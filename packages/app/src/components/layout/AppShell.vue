@@ -1,15 +1,22 @@
 <template>
   <div class="flex h-screen overflow-hidden bg-[var(--color-bg)]">
-    <!-- Sidebar -->
-    <SideNav :collapsed="sidebarCollapsed" @toggle="sidebarCollapsed = !sidebarCollapsed" />
+    <!-- Sidebar (hidden on mobile) -->
+    <SideNav
+      class="hidden md:flex"
+      :collapsed="sidebarCollapsed"
+      @toggle="sidebarCollapsed = !sidebarCollapsed"
+    />
 
     <!-- Main content -->
     <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
       <TopBar @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed" />
-      <main class="flex-1 overflow-y-auto p-6">
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
         <RouterView />
       </main>
     </div>
+
+    <!-- Bottom nav (mobile only) -->
+    <BottomNav />
   </div>
 </template>
 
@@ -18,6 +25,7 @@ import { defineComponent } from 'vue'
 import { RouterView } from 'vue-router'
 import SideNav from './SideNav.vue'
 import TopBar from './TopBar.vue'
+import BottomNav from './BottomNav.vue'
 import { useFilesStore } from '@/stores/files'
 import { useTransactionsStore } from '@/stores/transactions'
 import { useAccountsStore } from '@/stores/accounts'
@@ -25,7 +33,7 @@ import { useCategoriesStore } from '@/stores/categories'
 
 export default defineComponent({
   name: 'AppShell',
-  components: { RouterView, SideNav, TopBar },
+  components: { RouterView, SideNav, TopBar, BottomNav },
 
   setup() {
     const categoriesStore = useCategoriesStore()

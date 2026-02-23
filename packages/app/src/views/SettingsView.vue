@@ -1,6 +1,6 @@
 <template>
-  <div class="space-y-6 max-w-2xl">
-    <h2 class="font-heading font-bold text-xl text-gray-900 dark:text-white">Settings</h2>
+  <div class="space-y-4 md:space-y-6 max-w-2xl">
+    <h2 class="font-heading font-bold text-lg md:text-xl text-gray-900 dark:text-white">Settings</h2>
 
     <!-- AI Configuration -->
     <div class="card space-y-5">

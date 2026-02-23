@@ -1,12 +1,12 @@
 <template>
-  <div class="max-w-4xl space-y-8">
+  <div class="max-w-4xl space-y-6 md:space-y-8">
     <!-- Header -->
     <div>
-      <button class="btn-ghost mb-4 -ml-2" @click="router.back()">
+      <button class="btn-ghost mb-4 -ml-2 min-h-[44px]" @click="router.back()">
         <ArrowLeft class="w-4 h-4" /> Back
       </button>
-      <h1 class="font-heading font-bold text-2xl text-gray-900 dark:text-white">Add an Account</h1>
-      <p class="text-gray-500 dark:text-gray-400 font-body mt-1">
+      <h1 class="font-heading font-bold text-xl md:text-2xl text-gray-900 dark:text-white">Add an Account</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 font-body mt-1">
         Choose the type of account you'd like to track.
       </p>
     </div>

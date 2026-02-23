@@ -1,23 +1,24 @@
 <template>
-  <div class="p-6 max-w-3xl mx-auto space-y-6">
+  <div class="max-w-3xl mx-auto space-y-4 md:space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-heading font-bold text-[var(--color-text)]">
+        <h1 class="text-lg md:text-2xl font-heading font-bold text-[var(--color-text)]">
           Connected Banks
         </h1>
-        <p class="text-sm text-[var(--color-muted)] mt-1">
+        <p class="text-xs md:text-sm text-[var(--color-muted)] mt-1">
           Link your bank accounts to automatically import transactions.
         </p>
       </div>
       <button
-        class="btn-primary flex items-center gap-2"
+        class="btn-primary flex items-center gap-2 shrink-0 min-h-[44px]"
         :disabled="connecting"
         @click="openPlaidLink"
       >
         <Plus v-if="!connecting" class="w-4 h-4" />
         <Loader2 v-else class="w-4 h-4 animate-spin" />
-        {{ connecting ? 'Connecting…' : 'Connect Bank' }}
+        <span class="hidden sm:inline">{{ connecting ? 'Connecting...' : 'Connect Bank' }}</span>
+        <span class="sm:hidden">{{ connecting ? '...' : 'Connect' }}</span>
       </button>
     </div>
 
@@ -96,9 +97,9 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1 md:gap-2 shrink-0">
           <button
-            class="btn-secondary flex items-center gap-1.5 text-sm px-3 py-1.5"
+            class="btn-secondary flex items-center gap-1.5 text-sm px-2.5 md:px-3 py-2 min-h-[44px]"
             :disabled="plaid.syncing"
             @click="sync(item.id)"
             title="Sync latest transactions"
@@ -107,10 +108,10 @@
               class="w-3.5 h-3.5"
               :class="{ 'animate-spin': plaid.syncing && syncingId === item.id }"
             />
-            Sync
+            <span class="hidden sm:inline">Sync</span>
           </button>
           <button
-            class="btn-ghost text-red-500 hover:text-red-600 p-1.5"
+            class="btn-ghost text-red-500 hover:text-red-600 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Disconnect bank"
             @click="confirmRemove(item)"
           >
@@ -124,10 +125,10 @@
     <Teleport to="body">
       <div
         v-if="removingItem"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        class="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50"
         @click.self="removingItem = null"
       >
-        <div class="card w-full max-w-sm mx-4 space-y-4">
+        <div class="card w-full max-w-sm mx-0 md:mx-4 space-y-4 rounded-b-none md:rounded-b-xl">
           <h2 class="font-heading font-semibold text-[var(--color-text)]">
             Disconnect {{ removingItem.institutionName }}?
           </h2>

@@ -1,27 +1,27 @@
 <template>
-  <div class="card">
-    <div class="flex items-center justify-between mb-3">
-      <p class="text-xs font-heading font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+  <div class="card !p-3 md:!p-5">
+    <div class="flex items-center justify-between mb-2 md:mb-3">
+      <p class="text-[10px] md:text-xs font-heading font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
         {{ label }}
       </p>
       <div
         :class="[
-          'w-8 h-8 rounded-lg flex items-center justify-center',
+          'w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0',
           iconBg,
         ]"
       >
-        <component :is="icon" class="w-4 h-4" :class="iconColor" />
+        <component :is="icon" class="w-3.5 h-3.5 md:w-4 md:h-4" :class="iconColor" />
       </div>
     </div>
     <p
       :class="[
-        'font-heading font-bold text-2xl',
+        'font-heading font-bold text-lg md:text-2xl truncate',
         valueColor || 'text-gray-900 dark:text-white',
       ]"
     >
       {{ value }}
     </p>
-    <p v-if="sub" class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-body">
+    <p v-if="sub" class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 mt-1 font-body truncate">
       {{ sub }}
     </p>
   </div>

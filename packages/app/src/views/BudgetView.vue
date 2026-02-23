@@ -1,8 +1,8 @@
 <template>
-  <div class="space-y-6 max-w-4xl">
+  <div class="space-y-4 md:space-y-6 max-w-4xl">
     <div>
-      <h2 class="font-heading font-bold text-xl text-gray-900 dark:text-white">Budget</h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400 font-body">
+      <h2 class="font-heading font-bold text-lg md:text-xl text-gray-900 dark:text-white">Budget</h2>
+      <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-body">
         Plan and track your monthly spending goals
       </p>
     </div>
@@ -10,14 +10,14 @@
     <!-- Unbudgeted categories alert -->
     <div
       v-if="unbudgetedCount > 0"
-      class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-900/10"
+      class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 md:p-4 dark:border-amber-800/40 dark:bg-amber-900/10"
     >
       <AlertTriangle class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
       <div>
         <p class="text-sm font-heading font-medium text-amber-800 dark:text-amber-300">
           {{ unbudgetedCount }} {{ unbudgetedCount === 1 ? 'category has' : 'categories have' }} no budget set
         </p>
-        <p class="text-xs text-amber-700 dark:text-amber-400 font-body mt-0.5">
+        <p class="text-xs text-amber-700 dark:text-amber-400 font-body mt-0.5 hidden sm:block">
           You have spending in {{ unbudgetedCount === 1 ? 'a category' : 'categories' }} without a budget limit.
           Click the edit icon on any highlighted item below to set a limit.
         </p>
@@ -28,17 +28,17 @@
     <div class="card">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <p class="text-xs text-gray-500 font-body uppercase tracking-wider">
+          <p class="text-[10px] md:text-xs text-gray-500 font-body uppercase tracking-wider">
             Budget used
           </p>
-          <p class="font-heading font-bold text-2xl text-gray-900 dark:text-white">
+          <p class="font-heading font-bold text-xl md:text-2xl text-gray-900 dark:text-white">
             {{ formatCurrency(totalSpent) }}
-            <span class="text-sm text-gray-400 font-normal">/ {{ formatCurrency(budgetStore.totalBudgeted) }}</span>
+            <span class="text-xs md:text-sm text-gray-400 font-normal">/ {{ formatCurrency(budgetStore.totalBudgeted) }}</span>
           </p>
         </div>
         <div class="text-right">
-          <p class="text-xs text-gray-500 font-body">Remaining</p>
-          <p :class="['font-heading font-bold text-lg', remaining >= 0 ? 'text-emerald-600' : 'text-red-500']">
+          <p class="text-[10px] md:text-xs text-gray-500 font-body">Remaining</p>
+          <p :class="['font-heading font-bold text-base md:text-lg', remaining >= 0 ? 'text-emerald-600' : 'text-red-500']">
             {{ formatCurrency(Math.abs(remaining)) }}
             {{ remaining < 0 ? 'over' : 'left' }}
           </p>
@@ -60,26 +60,26 @@
         :key="item.categoryId"
         :class="['card', item.unbudgeted && 'border border-amber-200 dark:border-amber-800/40']"
       >
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }" />
-            <span class="font-heading font-medium text-sm text-gray-900 dark:text-white">
+        <div class="flex items-start sm:items-center justify-between mb-2 gap-2">
+          <div class="flex items-center gap-2 min-w-0 flex-wrap">
+            <div class="w-3 h-3 rounded-full shrink-0" :style="{ backgroundColor: item.color }" />
+            <span class="font-heading font-medium text-sm text-gray-900 dark:text-white truncate">
               {{ item.categoryName }}
             </span>
-            <span v-if="item.over" class="badge bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-heading text-xs">
-              Over budget
+            <span v-if="item.over" class="badge bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-heading text-[10px] md:text-xs">
+              Over
             </span>
-            <span v-if="item.unbudgeted" class="badge bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-heading text-xs">
-              No budget set
+            <span v-if="item.unbudgeted" class="badge bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-heading text-[10px] md:text-xs">
+              No limit
             </span>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-heading text-gray-700 dark:text-gray-300">
+          <div class="flex items-center gap-1 md:gap-2 shrink-0">
+            <span class="text-xs md:text-sm font-heading text-gray-700 dark:text-gray-300">
               {{ formatCurrency(item.spent) }}
             </span>
-            <span v-if="!item.unbudgeted" class="text-xs text-gray-400 font-body">/ {{ formatCurrency(item.limit) }}</span>
+            <span v-if="!item.unbudgeted" class="text-[10px] md:text-xs text-gray-400 font-body hidden sm:inline">/ {{ formatCurrency(item.limit) }}</span>
             <button
-              class="btn-ghost p-1 ml-1"
+              class="btn-ghost p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
               @click="openEdit(item.categoryId, item.categoryName, item.limit)"
               :title="item.unbudgeted ? 'Set budget' : 'Edit budget'"
             >
@@ -87,7 +87,7 @@
             </button>
             <button
               v-if="!item.unbudgeted"
-              class="btn-ghost p-1 text-red-400 hover:text-red-600"
+              class="btn-ghost p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-400 hover:text-red-600"
               @click="budgetStore.removeItem(item.id)"
               title="Remove budget"
             >
@@ -109,17 +109,22 @@
       </div>
 
       <!-- Add category button -->
-      <button class="btn-secondary w-full justify-center" @click="showAddModal = true">
+      <button class="btn-secondary w-full justify-center min-h-[44px]" @click="showAddModal = true">
         <Plus class="w-4 h-4" /> Add Budget Category
       </button>
     </div>
 
     <!-- Add/Edit modal -->
     <Teleport to="body">
-      <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0" leave-active-class="transition-opacity duration-150" leave-to-class="opacity-0">
-        <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <Transition
+        enter-active-class="transition-all duration-200"
+        enter-from-class="opacity-0"
+        leave-active-class="transition-all duration-200"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4">
           <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal" />
-          <div class="relative card shadow-xl w-full max-w-sm z-10">
+          <div class="relative card shadow-xl w-full max-w-sm z-10 rounded-b-none md:rounded-b-xl">
             <h3 class="font-heading font-semibold text-gray-900 dark:text-white mb-4">
               {{ editingId ? 'Edit Budget' : 'Add Budget' }}
             </h3>
@@ -127,7 +132,7 @@
             <div class="space-y-4">
               <div v-if="!editingId">
                 <label class="label">Category</label>
-                <select v-model="modalCategory" class="input">
+                <select v-model="modalCategory" class="input min-h-[44px]">
                   <option v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
                     {{ cat.name }}
                   </option>
@@ -147,7 +152,7 @@
                     type="number"
                     min="0"
                     step="10"
-                    class="input pl-7"
+                    class="input pl-7 min-h-[44px]"
                     placeholder="500"
                   />
                 </div>
@@ -155,8 +160,8 @@
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <button class="btn-secondary" @click="closeModal">Cancel</button>
-              <button class="btn-primary" @click="saveModal" :disabled="!modalAmount">
+              <button class="btn-secondary min-h-[44px]" @click="closeModal">Cancel</button>
+              <button class="btn-primary min-h-[44px]" @click="saveModal" :disabled="!modalAmount">
                 Save
               </button>
             </div>

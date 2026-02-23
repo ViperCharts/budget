@@ -8,13 +8,13 @@
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4"
       >
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('update:modelValue', false)" />
 
         <!-- Dialog -->
-        <div class="relative card shadow-xl max-w-md w-full z-10">
+        <div class="relative card shadow-xl max-w-md w-full z-10 rounded-b-none md:rounded-b-xl">
           <h3 class="font-heading font-semibold text-gray-900 dark:text-white text-lg mb-2">
             {{ title }}
           </h3>
@@ -22,10 +22,10 @@
             {{ message }}
           </p>
           <div class="flex items-center justify-end gap-3">
-            <button class="btn-secondary" @click="$emit('update:modelValue', false)">
+            <button class="btn-secondary min-h-[44px]" @click="$emit('update:modelValue', false)">
               Cancel
             </button>
-            <button :class="dangerClass" @click="confirm">
+            <button :class="[dangerClass, 'min-h-[44px]']" @click="confirm">
               {{ confirmLabel }}
             </button>
           </div>

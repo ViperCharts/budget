@@ -59,7 +59,7 @@
             {{ error }}
           </p>
 
-          <button type="submit" class="btn-primary w-full justify-center" :disabled="loading">
+          <button type="submit" class="btn-primary w-full justify-center min-h-[44px]" :disabled="loading">
             <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
             {{ activeTab === 'sign-in' ? 'Sign In' : 'Create Account' }}
           </button>
@@ -73,7 +73,7 @@
 
         <button
           @click="signInWithGoogle"
-          class="btn-secondary w-full justify-center"
+          class="btn-secondary w-full justify-center min-h-[44px]"
           :disabled="loading"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

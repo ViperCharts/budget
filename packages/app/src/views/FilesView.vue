@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y-6 max-w-4xl">
+  <div class="space-y-4 md:space-y-6 max-w-4xl">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="font-heading font-bold text-xl text-gray-900 dark:text-white">
+        <h2 class="font-heading font-bold text-lg md:text-xl text-gray-900 dark:text-white">
           Statements
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 font-body mt-0.5">
+        <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-body mt-0.5">
           {{ filesStore.files.length }} file{{ filesStore.files.length !== 1 ? 's' : '' }} imported
         </p>
       </div>

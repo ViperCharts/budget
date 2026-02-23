@@ -8,7 +8,7 @@
     >
       <div
         v-if="modelValue && transaction"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4"
       >
         <!-- Backdrop -->
         <div
@@ -17,7 +17,7 @@
         />
 
         <!-- Dialog -->
-        <div class="relative card shadow-xl max-w-sm w-full z-10">
+        <div class="relative card shadow-xl max-w-sm w-full z-10 rounded-b-none md:rounded-b-xl max-h-[85vh] overflow-y-auto">
           <!-- Header -->
           <div class="flex items-start justify-between gap-3 mb-5">
             <div class="flex items-center gap-3 min-w-0">
@@ -47,7 +47,7 @@
               </div>
             </div>
             <button
-              class="btn-ghost p-1 -mt-1 -mr-1 shrink-0"
+              class="btn-ghost p-2 -mt-1 -mr-1 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
               @click="$emit('update:modelValue', false)"
             >
               <X class="w-5 h-5" />
@@ -123,7 +123,7 @@
 
           <div class="flex justify-end">
             <button
-              class="btn-secondary"
+              class="btn-secondary min-h-[44px]"
               @click="$emit('update:modelValue', false)"
             >
               Close

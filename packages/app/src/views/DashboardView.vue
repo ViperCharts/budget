@@ -1,22 +1,22 @@
 <template>
-  <div class="space-y-6 max-w-7xl">
+  <div class="space-y-4 md:space-y-6 max-w-7xl">
     <!-- Welcome banner -->
     <div class="card bg-gradient-to-br from-brand-600 to-brand-700 text-white border-0">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="font-heading font-bold text-xl mb-1">
+          <h2 class="font-heading font-bold text-lg md:text-xl mb-1">
             {{ greeting }}, {{ firstName }}! 👋
           </h2>
-          <p class="text-brand-100 font-body text-sm">
+          <p class="text-brand-100 font-body text-xs md:text-sm">
             Here's your financial picture for {{ currentMonthLabel }}.
           </p>
         </div>
-        <div class="text-5xl opacity-20 select-none">💰</div>
+        <div class="text-4xl md:text-5xl opacity-20 select-none hidden sm:block">💰</div>
       </div>
     </div>
 
     <!-- Stat cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
       <StatCard
         label="Net Worth"
         :value="formatCurrency(accountsStore.netWorth)"
@@ -52,7 +52,7 @@
     </div>
 
     <!-- Charts row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
       <SpendingLineChart :points="txStore.monthlySpending" />
       <SpendingPieChart
         :by-category="currentMonthSpending"
@@ -62,14 +62,14 @@
 
     <!-- Accounts -->
     <div>
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="font-heading font-semibold text-gray-900 dark:text-white">Accounts</h2>
-        <div class="flex items-center gap-3">
-          <RouterLink to="/accounts/add" class="btn-secondary text-xs px-3 py-1.5">
-            <Plus class="w-3.5 h-3.5" /> Add Account
+      <div class="flex items-center justify-between mb-3 gap-2">
+        <h2 class="font-heading font-semibold text-gray-900 dark:text-white shrink-0">Accounts</h2>
+        <div class="flex items-center gap-2 md:gap-3">
+          <RouterLink to="/accounts/add" class="btn-secondary text-xs px-2.5 md:px-3 py-1.5">
+            <Plus class="w-3.5 h-3.5" /> <span class="hidden sm:inline">Add Account</span><span class="sm:hidden">Add</span>
           </RouterLink>
-          <RouterLink to="/files" class="text-sm text-brand-600 dark:text-brand-400 hover:underline font-heading">
-            Import statement →
+          <RouterLink to="/files" class="text-xs md:text-sm text-brand-600 dark:text-brand-400 hover:underline font-heading whitespace-nowrap">
+            Import →
           </RouterLink>
         </div>
       </div>
@@ -90,7 +90,7 @@
         </template>
       </EmptyState>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <AccountCard
           v-for="account in accountsStore.accounts"
           :key="account.id"
