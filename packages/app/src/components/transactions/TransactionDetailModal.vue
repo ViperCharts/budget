@@ -114,9 +114,9 @@
             <div class="flex items-center justify-between">
               <dt class="text-sm font-body text-gray-500">Account</dt>
               <dd
-                class="text-sm font-mono text-gray-700 dark:text-gray-300 truncate max-w-[180px]"
+                class="text-sm font-body text-gray-700 dark:text-gray-300 truncate max-w-[180px] text-right"
               >
-                {{ transaction.accountId }}
+                {{ accountName }}
               </dd>
             </div>
           </dl>
@@ -140,6 +140,8 @@ import { defineComponent, type PropType } from 'vue'
 import { ArrowUpRight, ArrowDownLeft, X } from 'lucide-vue-next'
 import CategoryBadge from '@/components/ui/CategoryBadge.vue'
 import { formatCurrency, formatDate } from '@/lib/currency'
+import { formatAccountName } from '@/lib/account'
+import { useAccountsStore } from '@/stores/accounts'
 import type { Transaction } from '@/types'
 
 export default defineComponent({
@@ -153,6 +155,20 @@ export default defineComponent({
       default: null,
     },
   },
+
+  setup() {
+    const accountsStore = useAccountsStore()
+    return { accountsStore }
+  },
+
+  computed: {
+    accountName(): string {
+      if (!this.transaction) return ''
+      const account = this.accountsStore.byId[this.transaction.accountId]
+      return account ? formatAccountName(account) : this.transaction.accountId
+    },
+  },
+
   methods: { formatCurrency, formatDate },
 })
 </script>

@@ -7,10 +7,7 @@
         </div>
         <div>
           <p class="font-heading font-semibold text-gray-900 dark:text-white text-sm">
-            {{ account.name }}
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 capitalize font-body">
-            {{ accountTypeLabel }}
+            {{ formattedName }}
           </p>
         </div>
       </div>
@@ -58,6 +55,7 @@ import {
 } from 'lucide-vue-next'
 import type { Account } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/currency'
+import { formatAccountName } from '@/lib/account'
 import { useTransactionsStore } from '@/stores/transactions'
 
 export default defineComponent({
@@ -111,8 +109,8 @@ export default defineComponent({
       }
       return colors[this.account.type] ?? colors.other
     },
-    accountTypeLabel(): string {
-      return this.account.type.replace('_', ' ')
+    formattedName(): string {
+      return formatAccountName(this.account)
     },
     formattedBalance(): string {
       return formatCurrency(this.account.balance, this.account.currency)

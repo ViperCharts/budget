@@ -52,7 +52,7 @@
         <!-- Account filter -->
         <select v-model="accountFilter" class="input w-44">
           <option value="">All accounts</option>
-          <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+          <option v-for="a in accounts" :key="a.id" :value="a.id">{{ formatAccountName(a) }}</option>
         </select>
 
         <!-- Category filter -->
@@ -196,6 +196,7 @@ import { useAccountsStore } from '@/stores/accounts'
 import { useMonthStore } from '@/stores/month'
 import { useCategoriesStore } from '@/stores/categories'
 import { formatCurrency, dateToPeriod } from '@/lib/currency'
+import { formatAccountName } from '@/lib/account'
 import type { Transaction } from '@/types'
 
 const PAGE_SIZE = 50
@@ -299,6 +300,7 @@ export default defineComponent({
 
   methods: {
     formatCurrency,
+    formatAccountName,
     openDetail(tx: Transaction) {
       this.selectedTransaction = tx
       this.showDetailModal = true
