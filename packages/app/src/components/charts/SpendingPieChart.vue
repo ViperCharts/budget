@@ -71,7 +71,7 @@ export default defineComponent({
         .filter(([, v]) => v > 0)
         .sort(([, a], [, b]) => b - a)
         .map(([name, amount]) => ({
-          label: name,
+          label: `${name} · ${formatCurrency(amount)}`,
           value: (amount / this.total) * 100,
           color: this.categoriesStore.colorFor(name),
         }))
