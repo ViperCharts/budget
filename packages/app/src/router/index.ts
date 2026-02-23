@@ -39,6 +39,16 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
         },
+        {
+          path: 'accounts/add',
+          name: 'add-account',
+          component: () => import('@/views/AddAccountView.vue'),
+        },
+        {
+          path: 'accounts/add/:type',
+          name: 'account-setup',
+          component: () => import('@/views/AccountSetupView.vue'),
+        },
       ],
     },
     {

@@ -23,13 +23,15 @@ export const useAccountsStore = defineStore('accounts', {
 
   getters: {
     totalAssets(): number {
+      const LIABILITY_TYPES = ['credit_card', 'loan', 'auto_loan', 'mortgage', 'personal_loan']
       return this.accounts
-        .filter((a) => !['credit_card', 'loan', 'mortgage'].includes(a.type))
+        .filter((a) => !LIABILITY_TYPES.includes(a.type))
         .reduce((sum, a) => sum + a.balance, 0)
     },
     totalLiabilities(): number {
+      const LIABILITY_TYPES = ['credit_card', 'loan', 'auto_loan', 'mortgage', 'personal_loan']
       return this.accounts
-        .filter((a) => ['credit_card', 'loan', 'mortgage'].includes(a.type))
+        .filter((a) => LIABILITY_TYPES.includes(a.type))
         .reduce((sum, a) => sum + Math.abs(a.balance), 0)
     },
     netWorth(): number {
@@ -85,7 +87,10 @@ export const useAccountsStore = defineStore('accounts', {
         ...(account.accountNumber !== undefined && { accountNumber: account.accountNumber }),
         ...(account.holderName !== undefined && { holderName: account.holderName }),
         ...(account.interestRate !== undefined && { interestRate: account.interestRate }),
+        ...(account.apr !== undefined && { apr: account.apr }),
+        ...(account.apy !== undefined && { apy: account.apy }),
         ...(account.creditLimit !== undefined && { creditLimit: account.creditLimit }),
+        ...(account.cryptoSymbol !== undefined && { cryptoSymbol: account.cryptoSymbol }),
       }
 
       await setDoc(doc(db, 'accounts', id), { ...data, uid: auth.user.uid })

@@ -64,20 +64,28 @@
     <div>
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-heading font-semibold text-gray-900 dark:text-white">Accounts</h2>
-        <RouterLink to="/files" class="text-sm text-brand-600 dark:text-brand-400 hover:underline font-heading">
-          Import statement →
-        </RouterLink>
+        <div class="flex items-center gap-3">
+          <RouterLink to="/accounts/add" class="btn-secondary text-xs px-3 py-1.5">
+            <Plus class="w-3.5 h-3.5" /> Add Account
+          </RouterLink>
+          <RouterLink to="/files" class="text-sm text-brand-600 dark:text-brand-400 hover:underline font-heading">
+            Import statement →
+          </RouterLink>
+        </div>
       </div>
 
       <EmptyState
         v-if="!accountsStore.accounts.length"
         :icon="Wallet"
         title="No accounts yet"
-        description="Upload a bank or credit card statement to automatically import your accounts and transactions."
+        description="Add an account manually or upload a bank statement to automatically import your accounts and transactions."
       >
         <template #action>
-          <RouterLink to="/files" class="btn-primary">
-            <Upload class="w-4 h-4" /> Upload Statement
+          <RouterLink to="/accounts/add" class="btn-primary">
+            <Plus class="w-4 h-4" /> Add Account
+          </RouterLink>
+          <RouterLink to="/files" class="btn-secondary">
+            <Upload class="w-4 h-4" /> Import Statement
           </RouterLink>
         </template>
       </EmptyState>
@@ -127,6 +135,7 @@ import {
   ArrowUpRight,
   ArrowLeftRight,
   Upload,
+  Plus,
 } from 'lucide-vue-next'
 import StatCard from '@/components/ui/StatCard.vue'
 import AccountCard from '@/components/accounts/AccountCard.vue'
@@ -167,6 +176,7 @@ export default defineComponent({
       ArrowUpRight,
       ArrowLeftRight,
       Upload,
+      Plus,
     }
   },
 
