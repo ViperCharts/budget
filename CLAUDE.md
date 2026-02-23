@@ -78,7 +78,7 @@ This applies everywhere: `setDoc`, `updateDoc`, `addDoc`, batch writes, and tran
 - **Charts:** `./viper` (local library) — ask user before using anything not already in it
 - **AI:** Vercel AI SDK (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai`)
 - **Backend:** Firebase (Auth, Firestore, Storage) via env vars
-- **Fonts:** Montserrat (`font-heading`) for headers, Merriweather (`font-body`) for body
+- **Fonts:** Montserrat (`font-heading`) for headers, Roboto (`font-body`) for body
 
 ## Project Structure
 
