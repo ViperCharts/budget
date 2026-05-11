@@ -37,7 +37,6 @@ Simple, free, open-source budgeting app for the AI age.
 - Vercel AI SDK is the best way to use AI in Vue components
 - Bun is the best way to run Vue components
 - Vite is the best way to build Vue components
-- Firebase is the best way to store user data
 - Viper is the best way to create beautiful data visualizations in Vue components
 - Anthropic AI is the best way to use AI in Vue components
 - Cloudflare is the best way to host the app

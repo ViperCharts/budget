@@ -1,17 +1,5 @@
 import { defineStore } from 'pinia'
-import {
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  writeBatch,
-  onSnapshot,
-  query,
-  where,
-  type Unsubscribe,
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { useAuthStore } from './auth'
+import { trpc } from '@/lib/trpc'
 import { useMonthStore } from './month'
 import { useCategoriesStore } from './categories'
 import { dateToPeriod } from '@/lib/currency'
@@ -26,7 +14,6 @@ export const useTransactionsStore = defineStore('transactions', {
   state: () => ({
     transactions: [] as Transaction[],
     loading: false,
-    _unsubscribe: null as Unsubscribe | null,
   }),
 
   getters: {
@@ -99,53 +86,61 @@ export const useTransactionsStore = defineStore('transactions', {
   },
 
   actions: {
-    subscribe(accountIds?: string[]) {
-      const auth = useAuthStore()
-      if (!auth.user) return
-
+    async fetch() {
       this.loading = true
-      const q = query(
-        collection(db, 'transactions'),
-        where('uid', '==', auth.user.uid),
-      )
-
-      this._unsubscribe = onSnapshot(q, (snapshot) => {
-        this.transactions = snapshot.docs.map((d) => d.data() as Transaction)
+      try {
+        const rows = await trpc.transactions.list.query()
+        this.transactions = rows.map(mapRowToTransaction)
+      } finally {
         this.loading = false
-      })
-    },
-
-    unsubscribe() {
-      this._unsubscribe?.()
-      this._unsubscribe = null
+      }
     },
 
     async addTransactions(txs: Transaction[]) {
-      const auth = useAuthStore()
-      if (!auth.user) return
+      await trpc.transactions.addBatch.mutate(
+        txs.map((tx) => ({
+          id: tx.id,
+          accountId: tx.accountId,
+          fileId: tx.fileId,
+          date: tx.date,
+          description: tx.description,
+          amount: tx.amount,
+          type: tx.type,
+          category: tx.category,
+          notes: tx.notes ?? null,
+          pending: tx.pending ?? false,
+          ignore: tx.ignore ?? false,
+          plaidTransactionId: tx.plaidTransactionId ?? null,
+          source: tx.source ?? 'manual',
+        })),
+      )
 
-      const batch = writeBatch(db)
+      // Optimistic update
       for (const tx of txs) {
-        batch.set(doc(db, 'transactions', tx.id), { ...tx, uid: auth.user.uid })
+        if (!this.transactions.find((t) => t.id === tx.id)) {
+          this.transactions.push(tx)
+        }
       }
-      await batch.commit()
     },
 
     async updateTransaction(id: string, updates: Partial<Transaction>) {
-      await setDoc(doc(db, 'transactions', id), updates, { merge: true })
+      await trpc.transactions.update.mutate({ id, ...updates })
+
+      // Optimistic update
+      const idx = this.transactions.findIndex((t) => t.id === id)
+      if (idx >= 0) {
+        this.transactions[idx] = { ...this.transactions[idx], ...updates }
+      }
     },
 
     async deleteTransaction(id: string) {
-      await deleteDoc(doc(db, 'transactions', id))
+      await trpc.transactions.delete.mutate({ id })
+      this.transactions = this.transactions.filter((t) => t.id !== id)
     },
 
     async deleteByFileId(fileId: string) {
-      const batch = writeBatch(db)
-      const toDelete = this.transactions.filter((t) => t.fileId === fileId)
-      for (const tx of toDelete) {
-        batch.delete(doc(db, 'transactions', tx.id))
-      }
-      if (toDelete.length > 0) await batch.commit()
+      await trpc.transactions.deleteByFileId.mutate({ fileId })
+      this.transactions = this.transactions.filter((t) => t.fileId !== fileId)
     },
 
     async updateCategory(id: string, category: string) {
@@ -157,3 +152,21 @@ export const useTransactionsStore = defineStore('transactions', {
     },
   },
 })
+
+function mapRowToTransaction(row: Record<string, unknown>): Transaction {
+  return {
+    id: row.id as string,
+    accountId: row.accountId as string,
+    fileId: row.fileId as string,
+    date: row.date as string,
+    description: row.description as string,
+    amount: row.amount as number,
+    type: row.type as 'debit' | 'credit',
+    category: row.category as string,
+    ...(row.notes != null && { notes: row.notes as string }),
+    ...(row.pending != null && { pending: row.pending as boolean }),
+    ...(row.ignore != null && { ignore: row.ignore as boolean }),
+    ...(row.plaidTransactionId != null && { plaidTransactionId: row.plaidTransactionId as string }),
+    ...(row.source != null && { source: row.source as 'manual' | 'plaid' }),
+  }
+}

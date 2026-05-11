@@ -188,12 +188,8 @@ export default defineComponent({
   },
 
   mounted() {
-    this.plaid.subscribe()
+    this.plaid.fetch()
     this.loadPlaidScript()
-  },
-
-  beforeUnmount() {
-    this.plaid.unsubscribe()
   },
 
   methods: {

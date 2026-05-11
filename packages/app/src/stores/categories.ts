@@ -1,7 +1,9 @@
 import { defineStore } from "pinia";
+import { trpc } from "@/lib/trpc";
+import { nanoid } from "@/lib/nanoid";
 import type { Category } from "@/types";
 
-// Default category palette (built-in, never written to Firestore)
+// Default category palette (built-in, never written to the database)
 export const DEFAULT_CATEGORIES: Category[] = [
   // Food
   {
@@ -162,7 +164,6 @@ export const useCategoriesStore = defineStore("categories", {
   state: () => ({
     /** All categories: defaults merged with user's custom ones */
     categories: [...DEFAULT_CATEGORIES] as Category[],
-    _unsubscribe: null as (() => void) | null,
   }),
 
   getters: {
@@ -213,104 +214,73 @@ export const useCategoriesStore = defineStore("categories", {
   },
 
   actions: {
-    async subscribe() {
-      const { db } = await import("@/lib/firebase");
-      const { useAuthStore } = await import("@/stores/auth");
-      const { collection, query, where, onSnapshot } = await import(
-        "firebase/firestore"
-      );
-
-      const auth = useAuthStore();
-      if (!auth.user) return;
-
-      const q = query(
-        collection(db, "userCategories"),
-        where("uid", "==", auth.user.uid)
-      );
-
-      this._unsubscribe = onSnapshot(q, (snap) => {
-        const custom: Category[] = snap.docs.map((doc) => {
-          const d = doc.data();
+    async fetch() {
+      try {
+        const rows = await trpc.categories.list.query();
+        const custom: Category[] = rows.map((row: { id: string; name: string; color: string; emoji: string | null }) => {
           const cat: Category = {
-            id: doc.id,
-            name: d.name,
-            color: d.color,
+            id: row.id,
+            name: row.name,
+            color: row.color,
             isCustom: true,
           };
-          if (d.emoji) cat.emoji = d.emoji;
+          if (row.emoji) cat.emoji = row.emoji;
           return cat;
         });
 
-        // Merge: defaults first, then user's custom categories
         this.categories = [...DEFAULT_CATEGORIES, ...custom];
-      });
-    },
-
-    unsubscribe() {
-      this._unsubscribe?.();
-      this._unsubscribe = null;
+      } catch {
+        // Keep defaults on error
+      }
     },
 
     async addCategory(
       name: string,
       color: string,
-      emoji?: string
+      emoji?: string,
     ): Promise<Category> {
-      const { db } = await import("@/lib/firebase");
-      const { useAuthStore } = await import("@/stores/auth");
-      const { collection, addDoc } = await import("firebase/firestore");
+      const id = nanoid();
 
-      const auth = useAuthStore();
-      if (!auth.user) throw new Error("Not authenticated");
-
-      const data: Record<string, unknown> = {
-        uid: auth.user.uid,
+      await trpc.categories.add.mutate({
+        id,
         name,
         color,
-      };
-      if (emoji) data.emoji = emoji;
+        ...(emoji && { emoji }),
+      });
 
-      const ref = await addDoc(collection(db, "userCategories"), data);
-
-      const cat: Category = { id: ref.id, name, color, isCustom: true };
+      const cat: Category = { id, name, color, isCustom: true };
       if (emoji) cat.emoji = emoji;
 
-      // Optimistically add (snapshot will also fire, but this feels snappier)
+      // Optimistic update
       this.categories.push(cat);
       return cat;
     },
 
     async updateCategory(id: string, updates: Partial<Category>) {
-      const { db } = await import("@/lib/firebase");
-      const { doc, updateDoc } = await import("firebase/firestore");
-
       const idx = this.categories.findIndex((c) => c.id === id);
       if (idx !== -1) {
         this.categories[idx] = { ...this.categories[idx], ...updates };
       }
 
-      // Only persist to Firestore if it's a custom category
+      // Only persist if it's a custom category
       const cat = this.categories[idx];
       if (cat?.isCustom) {
-        const data: Record<string, unknown> = {};
+        const data: Record<string, string> = {};
         if (updates.name !== undefined) data.name = updates.name;
         if (updates.color !== undefined) data.color = updates.color;
         if (updates.emoji !== undefined) data.emoji = updates.emoji;
         if (Object.keys(data).length) {
-          await updateDoc(doc(db, "userCategories", id), data);
+          await trpc.categories.update.mutate({ id, ...data });
         }
       }
     },
 
     async removeCategory(id: string) {
-      const { db } = await import("@/lib/firebase");
-      const { doc, deleteDoc } = await import("firebase/firestore");
-
       const cat = this.categories.find((c) => c.id === id);
       this.categories = this.categories.filter((c) => c.id !== id);
 
       if (cat?.isCustom) {
-        await deleteDoc(doc(db, "userCategories", id));
+        await trpc.categories.remove.mutate({ id });
       }
     },
 

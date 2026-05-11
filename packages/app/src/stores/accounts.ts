@@ -1,16 +1,5 @@
 import { defineStore } from 'pinia'
-import {
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-  type Unsubscribe,
-} from 'firebase/firestore'
-import { db } from '@/lib/firebase'
-import { useAuthStore } from './auth'
+import { trpc } from '@/lib/trpc'
 import type { Account, AccountType } from '@/types'
 import { nanoid } from '@/lib/nanoid'
 
@@ -18,7 +7,6 @@ export const useAccountsStore = defineStore('accounts', {
   state: () => ({
     accounts: [] as Account[],
     loading: false,
-    _unsubscribe: null as Unsubscribe | null,
   }),
 
   getters: {
@@ -50,31 +38,17 @@ export const useAccountsStore = defineStore('accounts', {
   },
 
   actions: {
-    subscribe() {
-      const auth = useAuthStore()
-      if (!auth.user) return
-
+    async fetch() {
       this.loading = true
-      const q = query(
-        collection(db, 'accounts'),
-        where('uid', '==', auth.user.uid),
-      )
-
-      this._unsubscribe = onSnapshot(q, (snapshot) => {
-        this.accounts = snapshot.docs.map((d) => d.data() as Account)
+      try {
+        const rows = await trpc.accounts.list.query()
+        this.accounts = rows.map(mapRowToAccount)
+      } finally {
         this.loading = false
-      })
-    },
-
-    unsubscribe() {
-      this._unsubscribe?.()
-      this._unsubscribe = null
+      }
     },
 
     async upsertAccount(account: Partial<Account> & { type: AccountType; name: string; balance: number }) {
-      const auth = useAuthStore()
-      if (!auth.user) return
-
       const id = account.id ?? nanoid()
       const data: Account = {
         id,
@@ -91,14 +65,45 @@ export const useAccountsStore = defineStore('accounts', {
         ...(account.apy !== undefined && { apy: account.apy }),
         ...(account.creditLimit !== undefined && { creditLimit: account.creditLimit }),
         ...(account.cryptoSymbol !== undefined && { cryptoSymbol: account.cryptoSymbol }),
+        ...(account.plaidAccountId !== undefined && { plaidAccountId: account.plaidAccountId }),
+        ...(account.plaidItemId !== undefined && { plaidItemId: account.plaidItemId }),
+        ...(account.source !== undefined && { source: account.source }),
       }
 
-      await setDoc(doc(db, 'accounts', id), { ...data, uid: auth.user.uid })
+      await trpc.accounts.upsert.mutate({
+        id,
+        name: data.name,
+        type: data.type,
+        balance: data.balance,
+        currency: data.currency,
+        lastUpdated: data.lastUpdated,
+        fileIds: data.fileIds,
+        accountNumber: data.accountNumber ?? null,
+        holderName: data.holderName ?? null,
+        interestRate: data.interestRate ?? null,
+        apr: data.apr ?? null,
+        apy: data.apy ?? null,
+        creditLimit: data.creditLimit ?? null,
+        cryptoSymbol: data.cryptoSymbol ?? null,
+        plaidAccountId: data.plaidAccountId ?? null,
+        plaidItemId: data.plaidItemId ?? null,
+        source: data.source ?? 'manual',
+      })
+
+      // Optimistic update
+      const idx = this.accounts.findIndex((a) => a.id === id)
+      if (idx >= 0) {
+        this.accounts[idx] = data
+      } else {
+        this.accounts.push(data)
+      }
+
       return data
     },
 
     async deleteAccount(id: string) {
-      await deleteDoc(doc(db, 'accounts', id))
+      await trpc.accounts.delete.mutate({ id })
+      this.accounts = this.accounts.filter((a) => a.id !== id)
     },
 
     async updateBalance(id: string, balance: number) {
@@ -108,3 +113,25 @@ export const useAccountsStore = defineStore('accounts', {
     },
   },
 })
+
+function mapRowToAccount(row: Record<string, unknown>): Account {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    type: row.type as AccountType,
+    balance: row.balance as number,
+    currency: (row.currency as string) ?? 'USD',
+    lastUpdated: row.lastUpdated as string,
+    fileIds: (row.fileIds as string[]) ?? [],
+    ...(row.accountNumber != null && { accountNumber: row.accountNumber as string }),
+    ...(row.holderName != null && { holderName: row.holderName as string }),
+    ...(row.interestRate != null && { interestRate: row.interestRate as number }),
+    ...(row.apr != null && { apr: row.apr as number }),
+    ...(row.apy != null && { apy: row.apy as number }),
+    ...(row.creditLimit != null && { creditLimit: row.creditLimit as number }),
+    ...(row.cryptoSymbol != null && { cryptoSymbol: row.cryptoSymbol as string }),
+    ...(row.plaidAccountId != null && { plaidAccountId: row.plaidAccountId as string }),
+    ...(row.plaidItemId != null && { plaidItemId: row.plaidItemId as string }),
+    ...(row.source != null && { source: row.source as 'manual' | 'plaid' }),
+  }
+}

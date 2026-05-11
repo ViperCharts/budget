@@ -51,17 +51,13 @@ export default defineComponent({
     const txStore = useTransactionsStore()
     const accountsStore = useAccountsStore()
 
-    filesStore.subscribe()
-    txStore.subscribe()
-    accountsStore.subscribe()
-    this.categoriesStore.subscribe()
-  },
-
-  unmounted() {
-    useFilesStore().unsubscribe()
-    useTransactionsStore().unsubscribe()
-    useAccountsStore().unsubscribe()
-    this.categoriesStore.unsubscribe()
+    // Fetch all data in parallel on mount
+    Promise.all([
+      filesStore.fetch(),
+      txStore.fetch(),
+      accountsStore.fetch(),
+      this.categoriesStore.fetch(),
+    ])
   },
 })
 </script>

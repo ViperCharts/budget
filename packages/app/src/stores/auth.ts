@@ -1,29 +1,6 @@
 import { defineStore } from 'pinia'
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  type User,
-} from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { authClient } from '@/lib/auth-client'
 import type { UserProfile } from '@/types'
-
-const cookieStorage = {
-  getItem(key: string): string | null {
-    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${encodeURIComponent(key)}=([^;]*)`))
-    return match ? decodeURIComponent(match[1]) : null
-  },
-  setItem(key: string, value: string): void {
-    const maxAge = 60 * 60 * 24 * 365 // 1 year
-    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Strict`
-  },
-  removeItem(key: string): void {
-    document.cookie = `${encodeURIComponent(key)}=;path=/;max-age=0`
-  },
-}
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -32,12 +9,6 @@ export const useAuthStore = defineStore('auth', {
     error: null as string | null,
   }),
 
-  persist: {
-    key: 'budget-auth',
-    storage: cookieStorage,
-    pick: ['user'],
-  },
-
   getters: {
     isAuthenticated(): boolean {
       return !!this.user
@@ -45,31 +16,45 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    init() {
-      return new Promise<void>((resolve) => {
-        onAuthStateChanged(auth, (firebaseUser: User | null) => {
-          if (firebaseUser) {
-            this.user = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoURL: firebaseUser.photoURL,
-            }
-          } else {
-            this.user = null
+    async init() {
+      try {
+        const { data: session } = await authClient.getSession()
+        if (session?.user) {
+          this.user = {
+            uid: session.user.id,
+            email: session.user.email ?? null,
+            displayName: session.user.name ?? null,
+            photoURL: session.user.image ?? null,
           }
-          this.loading = false
-          resolve()
-        })
-      })
+        } else {
+          this.user = null
+        }
+      } catch {
+        this.user = null
+      }
+      this.loading = false
     },
 
     async signIn(email: string, password: string) {
       this.error = null
       try {
-        await signInWithEmailAndPassword(auth, email, password)
+        const { data, error } = await authClient.signIn.email({ email, password })
+        if (error) {
+          this.error = error.message ?? 'Invalid email or password.'
+          throw new Error(this.error!)
+        }
+        if (data?.user) {
+          this.user = {
+            uid: data.user.id,
+            email: data.user.email ?? null,
+            displayName: data.user.name ?? null,
+            photoURL: data.user.image ?? null,
+          }
+        }
       } catch (e: unknown) {
-        this.error = getAuthError(e)
+        if (!this.error) {
+          this.error = getAuthError(e)
+        }
         throw e
       }
     },
@@ -77,10 +62,16 @@ export const useAuthStore = defineStore('auth', {
     async signInWithGoogle() {
       this.error = null
       try {
-        const provider = new GoogleAuthProvider()
-        await signInWithPopup(auth, provider)
+        const { error } = await authClient.signIn.social({ provider: 'google' })
+        if (error) {
+          this.error = error.message ?? 'Google sign-in failed.'
+          throw new Error(this.error!)
+        }
+        // After redirect, init() will pick up the session
       } catch (e: unknown) {
-        this.error = getAuthError(e)
+        if (!this.error) {
+          this.error = getAuthError(e)
+        }
         throw e
       }
     },
@@ -88,34 +79,41 @@ export const useAuthStore = defineStore('auth', {
     async signUp(email: string, password: string) {
       this.error = null
       try {
-        await createUserWithEmailAndPassword(auth, email, password)
+        const { data, error } = await authClient.signUp.email({
+          email,
+          password,
+          name: email.split('@')[0],
+        })
+        if (error) {
+          this.error = error.message ?? 'Sign-up failed.'
+          throw new Error(this.error!)
+        }
+        if (data?.user) {
+          this.user = {
+            uid: data.user.id,
+            email: data.user.email ?? null,
+            displayName: data.user.name ?? null,
+            photoURL: data.user.image ?? null,
+          }
+        }
       } catch (e: unknown) {
-        this.error = getAuthError(e)
+        if (!this.error) {
+          this.error = getAuthError(e)
+        }
         throw e
       }
     },
 
     async logout() {
-      await signOut(auth)
+      await authClient.signOut()
       this.user = null
     },
   },
 })
 
 function getAuthError(e: unknown): string {
-  if (e && typeof e === 'object' && 'code' in e) {
-    const code = (e as { code: string }).code
-    const messages: Record<string, string> = {
-      'auth/invalid-credential': 'Invalid email or password.',
-      'auth/user-not-found': 'No account found with this email.',
-      'auth/wrong-password': 'Incorrect password.',
-      'auth/email-already-in-use': 'An account with this email already exists.',
-      'auth/weak-password': 'Password should be at least 6 characters.',
-      'auth/invalid-email': 'Please enter a valid email address.',
-      'auth/too-many-requests': 'Too many attempts. Please try again later.',
-      'auth/popup-closed-by-user': 'Sign-in was cancelled.',
-    }
-    return messages[code] ?? 'An error occurred. Please try again.'
+  if (e instanceof Error) {
+    return e.message
   }
   return 'An error occurred. Please try again.'
 }

@@ -6,9 +6,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --cwd packages/app dev",
-    "dev:local": "concurrently --kill-others-on-fail --names \"emulators,app\" --prefix-colors \"yellow,cyan\" \"firebase emulators:start --import=./emulator-data --export-on-exit\" \"VITE_USE_EMULATOR=true bun run --cwd packages/app dev\"",
-    "emulators": "firebase emulators:start --import=./emulator-data --export-on-exit",
+    "dev": "concurrently --kill-others-on-fail --names \"server,app\" --prefix-colors \"yellow,cyan\" \"bun run --cwd packages/server dev\" \"bun run --cwd packages/app dev\"",
+    "dev:app": "bun run --cwd packages/app dev",
+    "dev:server": "bun run --cwd packages/server dev",
     "build": "bun run --cwd packages/app build",
     "preview": "bun run --cwd packages/app preview"
   },

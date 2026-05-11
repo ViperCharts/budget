@@ -115,7 +115,7 @@ export interface BudgetFile {
   statementYear?: number;
   statementMonth?: number;
   accountId?: string;
-  /** Storage path in Firebase Storage */
+  /** Storage path on the server */
   storagePath?: string;
   /** Error message if status is 'error' */
   error?: string;

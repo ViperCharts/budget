@@ -1,29 +1,12 @@
 import { defineStore } from "pinia";
-import {
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-  type Unsubscribe,
-} from "firebase/firestore";
-import {
-  ref as storageRef,
-  uploadBytes,
-  deleteObject,
-  getDownloadURL,
-} from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
-import { useAuthStore } from "./auth";
+import { trpc } from "@/lib/trpc";
 import { useAIStore } from "./ai";
 import { useAccountsStore } from "./accounts";
 import { useTransactionsStore } from "./transactions";
 import { readFileAsText, detectFormat, csvToText, parseCSV } from "@/lib/csv";
 import { extractFromText, extractFromPDF } from "@/lib/ai";
 import { nanoid, makeTransactionId } from "@/lib/nanoid";
-import type { BudgetFile, FileFormat } from "@/types";
+import type { BudgetFile, FileFormat, ExtractedFileData } from "@/types";
 
 export interface FileTreeNode {
   year: number;
@@ -38,7 +21,6 @@ export const useFilesStore = defineStore("files", {
     files: [] as BudgetFile[],
     loading: false,
     uploading: false,
-    _unsubscribe: null as Unsubscribe | null,
   }),
 
   getters: {
@@ -79,40 +61,38 @@ export const useFilesStore = defineStore("files", {
   },
 
   actions: {
-    subscribe() {
-      const auth = useAuthStore();
-      if (!auth.user) return;
-
+    async fetch() {
       this.loading = true;
-      const q = query(
-        collection(db, "files"),
-        where("uid", "==", auth.user.uid)
-      );
-
-      this._unsubscribe = onSnapshot(q, (snapshot) => {
-        this.files = snapshot.docs.map((d) => d.data() as BudgetFile);
+      try {
+        const rows = await trpc.files.list.query();
+        this.files = rows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          format: row.format as FileFormat,
+          status: row.status as BudgetFile["status"],
+          size: row.size,
+          uploadedAt: row.uploadedAt,
+          ...(row.statementYear != null && { statementYear: row.statementYear }),
+          ...(row.statementMonth != null && { statementMonth: row.statementMonth }),
+          ...(row.accountId != null && { accountId: row.accountId as string }),
+          ...(row.storagePath != null && { storagePath: row.storagePath as string }),
+          ...(row.error != null && { error: row.error as string }),
+          ...(row.extractedData != null && { extractedData: row.extractedData as BudgetFile["extractedData"] }),
+        }));
+      } finally {
         this.loading = false;
-      });
-    },
-
-    unsubscribe() {
-      this._unsubscribe?.();
-      this._unsubscribe = null;
+      }
     },
 
     async uploadFile(rawFile: File) {
-      const auth = useAuthStore();
       const aiStore = useAIStore();
       const accountsStore = useAccountsStore();
       const transactionsStore = useTransactionsStore();
 
-      if (!auth.user) throw new Error("Not authenticated");
-
       const id = nanoid();
       const format = detectFormat(rawFile.name) as FileFormat;
-      const storagePath = `users/${auth.user.uid}/files/${id}_${rawFile.name}`;
 
-      // Create initial record
+      // Create initial record on server
       const fileDoc: BudgetFile = {
         id,
         name: rawFile.name,
@@ -122,21 +102,39 @@ export const useFilesStore = defineStore("files", {
         uploadedAt: new Date().toISOString(),
       };
 
-      console.log("[uploadFile] Writing file record to Firestore:", id);
-      await setDoc(doc(db, "files", id), { ...fileDoc, uid: auth.user.uid });
+      await trpc.files.create.mutate({
+        id,
+        name: rawFile.name,
+        format,
+        size: rawFile.size,
+        uploadedAt: fileDoc.uploadedAt,
+      });
 
-      // Upload to storage
-      console.log("[uploadFile] Uploading to Storage:", storagePath);
-      const fileRef = storageRef(storage, storagePath);
-      await uploadBytes(fileRef, rawFile);
-      console.log("[uploadFile] Storage upload complete");
+      // Optimistic: add to local state
+      this.files.push(fileDoc);
+
+      // Upload file to server
+      const formData = new FormData();
+      formData.append("file", rawFile);
+      formData.append("fileId", id);
+
+      const uploadRes = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!uploadRes.ok) {
+        await trpc.files.updateStatus.mutate({ id, status: "error", error: "Upload failed" });
+        this._updateLocalFile(id, { status: "error", error: "Upload failed" });
+        return;
+      }
+
+      const { storagePath } = await uploadRes.json();
 
       // Update status to processing
-      await setDoc(
-        doc(db, "files", id),
-        { status: "processing", storagePath },
-        { merge: true }
-      );
+      await trpc.files.updateStatus.mutate({ id, status: "processing", storagePath });
+      this._updateLocalFile(id, { status: "processing", storagePath });
 
       // AI extraction (if configured)
       if (aiStore.hasApiKey && format !== "unknown") {
@@ -178,7 +176,6 @@ export const useFilesStore = defineStore("files", {
                 : undefined;
 
               if (existingAccount) {
-                // Reuse existing account — update balance and add this file
                 const updatedFileIds = existingAccount.fileIds.includes(id)
                   ? existingAccount.fileIds
                   : [...existingAccount.fileIds, id];
@@ -189,7 +186,6 @@ export const useFilesStore = defineStore("files", {
                 });
                 accountId = existingAccount.id;
               } else {
-                // Create new account
                 const account = await accountsStore.upsertAccount({
                   name: extracted.accountName ?? "Unknown Account",
                   type: extracted.accountType ?? "checking",
@@ -204,7 +200,7 @@ export const useFilesStore = defineStore("files", {
               }
             }
 
-            // Save transactions — IDs are deterministic to prevent duplicates on re-upload
+            // Save transactions
             if (extracted.transactions.length > 0 && accountId) {
               await transactionsStore.addTransactions(
                 extracted.transactions.map((t) => {
@@ -224,76 +220,69 @@ export const useFilesStore = defineStore("files", {
               );
             }
 
-            // Update file doc — strip undefined fields before writing to Firestore
+            // Update file status — strip undefined fields before sending to server
             const extractedData = Object.fromEntries(
               Object.entries(extracted).filter(([, v]) => v !== undefined)
-            );
-            await setDoc(
-              doc(db, "files", id),
-              {
-                status: "ready",
-                extractedData,
-                ...(statementYear !== undefined && { statementYear }),
-                ...(statementMonth !== undefined && { statementMonth }),
-                ...(accountId !== undefined && { accountId }),
-              },
-              { merge: true }
-            );
+            ) as ExtractedFileData;
+            await trpc.files.updateStatus.mutate({
+              id,
+              status: "ready",
+              extractedData,
+              ...(statementYear !== undefined && { statementYear }),
+              ...(statementMonth !== undefined && { statementMonth }),
+              ...(accountId !== undefined && { accountId }),
+            });
+            this._updateLocalFile(id, {
+              status: "ready",
+              extractedData,
+              ...(statementYear !== undefined && { statementYear }),
+              ...(statementMonth !== undefined && { statementMonth }),
+              ...(accountId !== undefined && { accountId }),
+            });
           } else {
-            await setDoc(
-              doc(db, "files", id),
-              { status: "ready" },
-              { merge: true }
-            );
+            await trpc.files.updateStatus.mutate({ id, status: "ready" });
+            this._updateLocalFile(id, { status: "ready" });
           }
         } catch (err) {
           console.error("AI extraction failed:", err);
-          await setDoc(
-            doc(db, "files", id),
-            {
-              status: "error",
-              error:
-                err instanceof Error ? err.message : "AI extraction failed",
-            },
-            { merge: true }
-          );
+          const error = err instanceof Error ? err.message : "AI extraction failed";
+          await trpc.files.updateStatus.mutate({ id, status: "error", error });
+          this._updateLocalFile(id, { status: "error", error });
         }
       } else {
-        await setDoc(
-          doc(db, "files", id),
-          { status: "ready" },
-          { merge: true }
-        );
+        await trpc.files.updateStatus.mutate({ id, status: "ready" });
+        this._updateLocalFile(id, { status: "ready" });
       }
     },
 
     async getDownloadUrl(fileId: string): Promise<string> {
-      const file = this.byId[fileId]
-      if (!file?.storagePath) throw new Error('No storage path for file')
-      const fileRef = storageRef(storage, file.storagePath)
-      return getDownloadURL(fileRef)
+      const file = this.byId[fileId];
+      if (!file?.storagePath) throw new Error("No storage path for file");
+      return `/api/files/download/${file.storagePath}`;
     },
 
     async deleteFile(fileId: string) {
       const file = this.byId[fileId];
       if (!file) return;
 
-      // Delete from storage
-      if (file.storagePath) {
-        try {
-          const fileRef = storageRef(storage, file.storagePath);
-          await deleteObject(fileRef);
-        } catch {
-          // Ignore if not found
-        }
-      }
+      // Server handles storage deletion and transaction cleanup
+      await trpc.files.delete.mutate({ id: fileId });
 
-      // Delete from Firestore
-      await deleteDoc(doc(db, "files", fileId));
+      // Optimistic update
+      this.files = this.files.filter((f) => f.id !== fileId);
 
-      // Delete associated transactions
+      // Also update local transactions store
       const transactionsStore = useTransactionsStore();
-      await transactionsStore.deleteByFileId(fileId);
+      transactionsStore.transactions = transactionsStore.transactions.filter(
+        (t) => t.fileId !== fileId
+      );
+    },
+
+    _updateLocalFile(id: string, updates: Partial<BudgetFile>) {
+      const idx = this.files.findIndex((f) => f.id === id);
+      if (idx >= 0) {
+        this.files[idx] = { ...this.files[idx], ...updates };
+      }
     },
   },
 });

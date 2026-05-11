@@ -44,29 +44,22 @@ methods: {
 },
 ```
 
-## Firestore Rules
+## Database Rules
 
-**Never write `undefined` values to Firestore.** Firestore throws a runtime error if any field in a document is `undefined`.
+**Use `null` instead of `undefined` for optional database fields.** PostgreSQL columns accept `null` but not `undefined`.
 
-For optional fields, omit them entirely from the object rather than setting them to `undefined`:
+For optional fields, pass `null` explicitly when the value is absent:
 
 ```ts
-// ✅ Correct — omit the field when the value is absent
+// ✅ Correct
 const data = {
   name: account.name,
-  ...(account.creditLimit !== undefined && { creditLimit: account.creditLimit }),
-  ...(account.interestRate !== undefined && { interestRate: account.interestRate }),
-}
-
-// ❌ Wrong — Firestore will throw
-const data = {
-  name: account.name,
-  creditLimit: account.creditLimit,   // may be undefined
-  interestRate: account.interestRate, // may be undefined
+  creditLimit: account.creditLimit ?? null,
+  interestRate: account.interestRate ?? null,
 }
 ```
 
-This applies everywhere: `setDoc`, `updateDoc`, `addDoc`, batch writes, and transactions.
+This applies to all Drizzle ORM insert/update operations.
 
 ## Tech Stack
 
@@ -77,7 +70,8 @@ This applies everywhere: `setDoc`, `updateDoc`, `addDoc`, batch writes, and tran
 - **Icons:** `lucide-vue-next`
 - **Charts:** `./viper` (local library) — ask user before using anything not already in it
 - **AI:** Vercel AI SDK (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai`)
-- **Backend:** Firebase (Auth, Firestore, Storage) via env vars
+- **Backend:** PostgreSQL (Neon) + Drizzle ORM + tRPC + better-auth
+- **Server:** Bun + Hono (packages/server)
 - **Fonts:** Montserrat (`font-heading`) for headers, Roboto (`font-body`) for body
 
 ## Project Structure
@@ -85,7 +79,7 @@ This applies everywhere: `setDoc`, `updateDoc`, `addDoc`, batch writes, and tran
 ```
 packages/
   app/          # Vue 3 frontend (bun dev)
-  functions/    # Firebase Cloud Functions
+  server/       # Bun + Hono + tRPC + Drizzle + better-auth (bun dev:server)
 ```
 
 ## Style Guide

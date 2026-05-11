@@ -89,7 +89,7 @@ export default defineComponent({
     modelValue: { type: Boolean, required: true },
     /** Raw File object — used for pre-upload preview. Triggers blob URL creation. */
     file: { type: Object as PropType<File | null>, default: null },
-    /** Firebase Storage download URL — used for viewing an already-uploaded PDF. */
+    /** Server download URL — used for viewing an already-uploaded PDF. */
     src: { type: String as PropType<string | null>, default: null },
     /** Override display name (used when `file` is not provided). */
     name: { type: String as PropType<string | null>, default: null },

@@ -1,14 +1,5 @@
 import { defineStore } from 'pinia'
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-  type Unsubscribe,
-} from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
-import { db, fns } from '@/lib/firebase'
-import { useAuthStore } from './auth'
+import { trpc } from '@/lib/trpc'
 import type { PlaidItem } from '@/types'
 
 export interface PlaidLinkMetadata {
@@ -21,7 +12,6 @@ export const usePlaidStore = defineStore('plaid', {
     loading: false,
     syncing: false,
     connectingItemId: null as string | null,
-    _unsubscribe: null as Unsubscribe | null,
   }),
 
   getters: {
@@ -34,64 +24,54 @@ export const usePlaidStore = defineStore('plaid', {
   },
 
   actions: {
-    subscribe() {
-      const auth = useAuthStore()
-      if (!auth.user) return
-
+    async fetch() {
       this.loading = true
-      const q = query(
-        collection(db, 'plaidItems'),
-        where('uid', '==', auth.user.uid),
-      )
-
-      this._unsubscribe = onSnapshot(q, (snapshot) => {
-        this.items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as PlaidItem))
+      try {
+        const rows = await trpc.plaid.listItems.query()
+        this.items = rows.map((row) => ({
+          id: row.id,
+          uid: row.userId,
+          institutionId: row.institutionId,
+          institutionName: row.institutionName,
+          lastSync: row.lastSync ?? null,
+          status: row.status as PlaidItem['status'],
+          ...(row.error != null && { error: row.error as string }),
+        }))
+      } finally {
         this.loading = false
-      })
-    },
-
-    unsubscribe() {
-      this._unsubscribe?.()
-      this._unsubscribe = null
+      }
     },
 
     async createLinkToken(): Promise<string> {
-      const fn = httpsCallable<void, { linkToken: string }>(fns, 'createPlaidLinkToken')
-      const result = await fn()
-      return result.data.linkToken
+      const result = await trpc.plaid.createLinkToken.mutate()
+      return result.linkToken
     },
 
     async exchangePublicToken(
       publicToken: string,
       metadata: PlaidLinkMetadata,
     ): Promise<void> {
-      const fn = httpsCallable<
-        { publicToken: string; institutionId: string; institutionName: string },
-        { itemId: string }
-      >(fns, 'exchangePlaidPublicToken')
-
-      const result = await fn({
+      const result = await trpc.plaid.exchangePublicToken.mutate({
         publicToken,
         institutionId: metadata.institution?.institution_id ?? '',
         institutionName: metadata.institution?.name ?? 'Unknown Bank',
       })
 
-      this.connectingItemId = result.data.itemId
+      this.connectingItemId = result.itemId
     },
 
     async syncItem(itemId: string): Promise<void> {
       this.syncing = true
       try {
-        const fn = httpsCallable<{ itemId: string }, { ok: boolean }>(fns, 'syncPlaidItem')
-        await fn({ itemId })
+        await trpc.plaid.syncItem.mutate({ itemId })
       } finally {
         this.syncing = false
       }
     },
 
     async removeItem(itemId: string): Promise<void> {
-      const fn = httpsCallable<{ itemId: string }, { ok: boolean }>(fns, 'removePlaidItem')
-      await fn({ itemId })
+      await trpc.plaid.removeItem.mutate({ itemId })
+      this.items = this.items.filter((i) => i.id !== itemId)
     },
   },
 })

@@ -39,7 +39,9 @@ Individuals who want to track their finances and build better habits.
 - Pinia
 - Tailwind CSS
 - Lucid Icons
-- Firebase
+- PostgreSQL (Neon) + Drizzle ORM
+- tRPC + Hono (API server)
+- better-auth (Authentication)
 - Vercel AI SDK (User brings their own Model + API Key)
 - ./viper = DataViz library (if you want something not in it, tell me and I'll add it!)
 
@@ -47,8 +49,8 @@ Individuals who want to track their finances and build better habits.
 
 Monorepo structure with packages/
 
-- packages/app
-- packages/functions (for AI, Firebase, etc.)
+- packages/app (Vue 3 frontend)
+- packages/server (Bun + Hono + tRPC + Drizzle + better-auth)
 
 ## Project Status
 

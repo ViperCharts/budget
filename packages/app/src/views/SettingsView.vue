@@ -118,16 +118,16 @@
       </div>
     </div>
 
-    <!-- Firebase config note -->
+    <!-- Server config note -->
     <div class="card bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800">
       <div class="flex gap-3">
         <AlertCircle class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
           <p class="font-heading font-medium text-amber-800 dark:text-amber-300 text-sm">
-            Firebase Configuration
+            Server Configuration
           </p>
           <p class="text-xs text-amber-700 dark:text-amber-400 font-body mt-0.5">
-            Set your Firebase credentials in <code class="font-mono bg-amber-100 dark:bg-amber-900/30 px-1 rounded">.env.local</code> to enable cloud sync and storage.
+            Set your server credentials in <code class="font-mono bg-amber-100 dark:bg-amber-900/30 px-1 rounded">packages/server/.env</code> to enable data sync and storage.
             See <code class="font-mono bg-amber-100 dark:bg-amber-900/30 px-1 rounded">.env.example</code> for required variables.
           </p>
         </div>
