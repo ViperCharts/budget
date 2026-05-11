@@ -81,6 +81,7 @@ app.get("/api/files/download/:userId/:filename", async (c) => {
 app.use(
   "/api/trpc/*",
   trpcServer({
+    endpoint: "/api/trpc",
     router: appRouter,
     createContext: (_opts, c) => createContext(c),
   }),

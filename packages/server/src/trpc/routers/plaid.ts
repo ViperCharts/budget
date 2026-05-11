@@ -129,22 +129,23 @@ async function syncPlaidItemData(
       }
     }
 
-    // Fetch up to 24 months of transactions
-    const endDate = new Date().toISOString().split("T")[0];
-    const startDate = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
+    // Fetch transactions using transactionsSync (cursor-based)
+    let cursor: string | undefined;
+    let hasMore = true;
+    const allAdded: any[] = [];
 
-    const txResponse = await plaid.transactionsGet({
-      access_token: accessToken,
-      start_date: startDate,
-      end_date: endDate,
-      options: { count: 500, offset: 0 },
-    });
+    while (hasMore) {
+      const syncResponse = await plaid.transactionsSync({
+        access_token: accessToken,
+        ...(cursor ? { cursor } : {}),
+      });
 
-    const plaidTxs = txResponse.data.transactions;
+      allAdded.push(...syncResponse.data.added);
+      cursor = syncResponse.data.next_cursor;
+      hasMore = syncResponse.data.has_more;
+    }
 
-    if (plaidTxs.length > 0) {
+    if (allAdded.length > 0) {
       // Get existing plaid transaction IDs to skip duplicates
       const existingTxs = await db
         .select({ plaidTransactionId: transactions.plaidTransactionId })
@@ -162,13 +163,13 @@ async function syncPlaidItemData(
           .filter((id): id is string => id !== null),
       );
 
-      const newTxs = plaidTxs.filter(
+      const newTxs = allAdded.filter(
         (t) => !existingPlaidTxIds.has(t.transaction_id),
       );
 
       if (newTxs.length > 0) {
         const rows = newTxs
-          .map((pt) => {
+          .map((pt: any) => {
             const accountDbId = plaidAccountIdToDbId[pt.account_id];
             if (!accountDbId) return null;
 
@@ -258,14 +259,7 @@ export const plaidRouter = router({
       const accessToken = exchangeResponse.data.access_token;
       const itemId = exchangeResponse.data.item_id;
 
-      // Store access token (server-only)
-      await db.insert(plaidSecrets).values({
-        itemId,
-        userId: ctx.userId,
-        accessToken,
-      });
-
-      // Save item metadata
+      // Save item metadata first (plaid_secrets references plaid_items)
       await db.insert(plaidItems).values({
         id: itemId,
         userId: ctx.userId,
@@ -273,6 +267,13 @@ export const plaidRouter = router({
         institutionName: input.institutionName || "Unknown Bank",
         lastSync: null,
         status: "pending",
+      });
+
+      // Store access token (server-only)
+      await db.insert(plaidSecrets).values({
+        itemId,
+        userId: ctx.userId,
+        accessToken,
       });
 
       // Sync initial data
